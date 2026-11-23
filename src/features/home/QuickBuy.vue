@@ -24,7 +24,7 @@ const screeningId = ref<string | null>(null)
 watch(() => dates.data.value, list => { date.value = list?.[0] ?? null }, { immediate: true })
 watch([complexId, date], () => { screeningId.value = null })
 
-const complexOptions = computed(() => app.complexes.map(complex => ({ value: complex.id, label: complex.name, hint: complex.city })))
+const complexOptions = computed(() => app.selectedComplexes.map(complex => ({ value: complex.id, label: complex.name, hint: complex.city })))
 const dateOptions = computed(() => (dates.data.value ?? []).map(value => ({ value, label: formatDate(value) })))
 const timeOptions = computed(() => (screenings.data.value ?? []).map(item => ({
   value: item.id,

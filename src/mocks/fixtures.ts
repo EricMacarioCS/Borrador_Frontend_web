@@ -57,8 +57,16 @@ export const COMPLEXES: ComplexFixture[] = [
     rooms: rooms('xal-centro-vip', [['vip', true], ['vip', false], ['vip', false]])
   },
   {
+    ...base, id: 'xal-animas', slug: 'xalapa-animas', name: 'Xalapa Ánimas', city: 'Xalapa', baseCents: 8200,
+    rooms: rooms('xal-animas', [['macro-xe', true], ['traditional', true], ['traditional', false], ['traditional', false], ['junior', false]])
+  },
+  {
     ...base, id: 'ver-boulevard', slug: 'veracruz-boulevard', name: 'Veracruz Boulevard', city: 'Veracruz', baseCents: 9000,
     rooms: rooms('ver-boulevard', [['macro-xe', true], ['traditional', true], ['traditional', false], ['traditional', false], ['traditional', true], ['junior', false]])
+  },
+  {
+    ...base, id: 'ver-puerto', slug: 'veracruz-puerto', name: 'Veracruz Puerto', city: 'Veracruz', baseCents: 8800,
+    rooms: rooms('ver-puerto', [['4dx', true], ['traditional', true], ['traditional', false], ['traditional', false]])
   },
   {
     ...base, id: 'boca-costa', slug: 'boca-del-rio-costa', name: 'Boca del Río Costa', city: 'Boca del Río', baseCents: 9200,
@@ -75,6 +83,15 @@ export const COMPLEXES: ComplexFixture[] = [
 ]
 
 export const findComplex = (id: string) => COMPLEXES.find(complex => complex.id === id)
+
+/** Formatos del complejo según sus salas: primero los tipos de sala, de mayor a menor categoría, y al final el 3D. */
+const FORMAT_ORDER: RoomFixture['type'][] = ['imax', '4dx', 'macro-xe', 'vip', 'junior', 'traditional']
+export function formatsOf(complex: ComplexFixture) {
+  const types = new Set(complex.rooms.map(room => room.type))
+  const formats: { code: string; name: string; kind: string }[] = FORMAT_ORDER.filter(type => types.has(type)).map(type => ({ code: type, name: ROOM_TYPES[type].name, kind: 'room-type' }))
+  if (complex.rooms.some(room => room.projections.includes('3d'))) formats.push({ code: '3d', name: PROJECTIONS['3d'].name, kind: 'projection' })
+  return formats
+}
 
 /* Planos: no rectangulares, con pasillos, lugares accesibles y numeración de derecha a izquierda. */
 
@@ -206,6 +223,14 @@ export const MOVIES: MovieFixture[] = [
     synopsis: 'Una experiencia audiovisual con orquesta en vivo, por una sola noche.'
   })
 ]
+
+/**
+ * Popularidad base de cada película, como si fueran los boletos vendidos de la última semana.
+ * El servidor simulado le suma los boletos vendidos en este navegador.
+ */
+export const POPULARITY: Record<string, number> = {
+  'm-101': 980, 'm-104': 870, 'm-108': 820, 'm-106': 650, 'm-105': 610, 'm-103': 430, 'm-102': 390, 'm-109': 160, 'm-110': 120
+}
 
 export const movieDates = (fixture: MovieFixture) => {
   const day = today()

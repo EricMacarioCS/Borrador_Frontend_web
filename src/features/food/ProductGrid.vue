@@ -5,14 +5,14 @@ import type { Product } from '@/domain/models'
 import { formatMoney } from '@/shared/lib/money'
 import { hashHue } from '@/shared/lib/text'
 
-const props = withDefaults(defineProps<{ products: Product[]; compact?: boolean }>(), { compact: false })
+const props = defineProps<{ products: Product[] }>()
 const emit = defineEmits<{ choose: [product: Product] }>()
 
 const sorted = computed(() => [...props.products].sort((a, b) => Number(b.available) - Number(a.available)))
 </script>
 
 <template>
-  <ul class="grid" :class="{ compact }" role="list">
+  <ul class="grid" role="list">
     <li v-for="product in sorted" :key="product.id" class="product" :class="{ off: !product.available }">
       <div class="art" :style="{ '--hue': hashHue(product.category.code) }" aria-hidden="true">{{ product.name.slice(0, 1) }}</div>
       <div class="copy">
@@ -39,8 +39,4 @@ const sorted = computed(() => [...props.products].sort((a, b) => Number(b.availa
 .copy h3 { font: 800 17px var(--font-title); }
 .copy p { color: var(--muted); font-size: 14px; }
 .copy strong { color: var(--blue); font: 800 16px var(--font-title); }
-.compact { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
-.compact .product { grid-template-columns: 56px 1fr auto; grid-template-rows: auto; align-items: center; }
-.compact .art { height: 56px; font-size: 26px; }
-.compact .copy p { display: none; }
 </style>

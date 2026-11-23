@@ -58,7 +58,8 @@ export function createHttpAdapters(options: { baseUrl: string; fetchImpl?: typeo
     },
     async listMovies(query, signal) {
       const body = await http.get('/movies', {
-        signal, query: { complexId: query.complexIds, stage: query.stage, specialEvents: query.specialEvents }
+        signal,
+        query: { complexId: query.complexIds, stage: query.stage, specialEvents: query.specialEvents, sort: query.sort, limit: query.limit }
       })
       return M.parse(S.ListOf(S.MovieDto), body, 'movies').items.map(M.toMovie)
     },

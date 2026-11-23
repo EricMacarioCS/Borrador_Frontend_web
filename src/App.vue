@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import AppHeader from '@/app/layout/AppHeader.vue'
 import AppFooter from '@/app/layout/AppFooter.vue'
 import FeedbackHost from '@/app/layout/FeedbackHost.vue'
+import ComplexPicker from '@/app/layout/ComplexPicker.vue'
 import { useConfig } from '@/app/services'
 
 const route = useRoute()
@@ -25,6 +26,7 @@ const focused = computed(() => route.meta.focused === true)
     </RouterView>
   </main>
   <AppFooter v-if="!focused" />
+  <ComplexPicker />
   <FeedbackHost />
 </template>
 

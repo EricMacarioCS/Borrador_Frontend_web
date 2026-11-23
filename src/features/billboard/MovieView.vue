@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowLeft, Clock, Film } from '@lucide/vue'
+import { ArrowLeft, Clock, Film, MapPin } from '@lucide/vue'
 import DateStrip from './DateStrip.vue'
 import ShowtimeGroups from './ShowtimeGroups.vue'
 import { useQueryParam } from './filters'
@@ -34,6 +34,10 @@ watch(() => movie.data.value?.title, title => { if (title) document.title = `${t
 const directors = computed(() => movie.data.value?.cast.filter(person => person.role === 'director').map(person => person.name) ?? [])
 const actors = computed(() => movie.data.value?.cast.filter(person => person.role !== 'director').map(person => person.name) ?? [])
 const pick = (screening: Screening) => router.push(`/compra/${screening.id}`)
+const hasComplexes = computed(() => app.selectedComplexIds.length > 0)
+
+// Al entrar por un enlace directo sin cine elegido, se pide el cine para mostrar horarios.
+onMounted(() => { if (!hasComplexes.value) app.askForComplexes() })
 </script>
 
 <template>
@@ -57,22 +61,37 @@ const pick = (screening: Screening) => router.push(`/compra/${screening.id}`)
                 <span>Estreno: {{ formatDate(movie.data.value.releaseDate, 'short') }}</span>
               </p>
               <p class="synopsis">{{ movie.data.value.synopsis }}</p>
-              <p class="rating-note">{{ movie.data.value.rating.description }}</p>
-              <dl v-if="directors.length || actors.length" class="cast">
-                <div v-if="directors.length"><dt>Dirección</dt><dd>{{ directors.join(', ') }}</dd></div>
-                <div v-if="actors.length"><dt>Reparto</dt><dd>{{ actors.join(', ') }}</dd></div>
-              </dl>
               <p v-if="!movie.data.value.trailerUrl" class="trailer-note"><Film :size="16" aria-hidden="true" /> Tráiler disponible próximamente.</p>
+              <a href="#horarios" class="btn btn-primary">Ver horarios</a>
             </div>
+            <dl class="facts">
+              <div><dt>Clasificación</dt><dd>{{ movie.data.value.rating.code }} · {{ movie.data.value.rating.description }}</dd></div>
+              <div><dt>Duración</dt><dd>{{ durationLabel(movie.data.value.durationMinutes) }}</dd></div>
+              <div><dt>Estreno</dt><dd>{{ formatDate(movie.data.value.releaseDate) }}</dd></div>
+              <div><dt>Género</dt><dd>{{ movie.data.value.genres.join(', ') }}</dd></div>
+              <div v-if="directors.length"><dt>Dirección</dt><dd>{{ directors.join(', ') }}</dd></div>
+              <div v-if="actors.length"><dt>Reparto</dt><dd>{{ actors.join(', ') }}</dd></div>
+            </dl>
           </div>
         </div>
       </section>
 
       <section class="container schedule" aria-labelledby="horarios">
-        <h2 id="horarios">Horarios</h2>
-        <StateView :loading="dates.isPending.value" :error="dates.error.value" :empty="!dates.data.value?.length" skeleton="rows"
+        <div class="schedule-head">
+          <h2 id="horarios">Horarios</h2>
+          <p v-if="hasComplexes" class="where"><MapPin :size="15" aria-hidden="true" /> {{ app.selectedComplexes.map(complex => complex.name).join(' · ') }}
+            <button type="button" class="link" @click="app.askForComplexes()">Cambiar</button>
+          </p>
+        </div>
+        <div v-if="!hasComplexes" class="card choose">
+          <MapPin :size="30" aria-hidden="true" />
+          <h3>Elige un cine para ver los horarios</h3>
+          <p class="muted">Puedes elegir varios cines de una misma ciudad para comparar.</p>
+          <button type="button" class="btn btn-primary" @click="app.askForComplexes()">Elegir cines</button>
+        </div>
+        <StateView v-else :loading="dates.isPending.value" :error="dates.error.value" :empty="!dates.data.value?.length" skeleton="rows"
           :empty-title="movie.data.value.stage === 'coming-soon' ? 'Aún no hay venta de boletos' : 'Sin funciones en tus cines'"
-          :empty-text="movie.data.value.stage === 'coming-soon' ? `Estreno el ${formatDate(movie.data.value.releaseDate)}.` : 'Elige otros cines en la barra superior.'"
+          :empty-text="movie.data.value.stage === 'coming-soon' ? `Estreno el ${formatDate(movie.data.value.releaseDate)}.` : 'Elige otros cines en la barra superior o con el botón Cambiar.'"
           @retry="dates.refetch()">
           <div class="card schedule-card">
             <DateStrip v-model="date" :days="days" :today="today" :available="dates.data.value ?? []" />
@@ -97,7 +116,7 @@ const pick = (screening: Screening) => router.push(`/compra/${screening.id}`)
 }
 .back { margin-bottom: 18px; display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; color: #cfe3ff; font: 700 14px var(--font-title); }
 .back:hover { color: var(--accent); }
-.hero-grid { display: grid; grid-template-columns: minmax(160px, 260px) 1fr; gap: 36px; align-items: start; }
+.hero-grid { display: grid; grid-template-columns: minmax(180px, 280px) minmax(0, 1fr) minmax(260px, 360px); gap: 40px; align-items: start; }
 .hero-grid :deep(.art) { box-shadow: 0 22px 50px rgba(0, 0, 0, .55), 0 0 34px color-mix(in srgb, var(--accent-movie) 40%, transparent); }
 .copy { display: grid; gap: 12px; justify-items: start; }
 h1 { color: var(--accent-movie); font: 800 clamp(30px, 4.4vw, 54px)/1.05 var(--font-title); text-transform: uppercase; text-shadow: 0 0 28px color-mix(in srgb, var(--accent-movie) 45%, transparent); }
@@ -106,13 +125,23 @@ h1 { color: var(--accent-movie); font: 800 clamp(30px, 4.4vw, 54px)/1.05 var(--f
 .meta .badge-rating { color: #fff; }
 .synopsis { max-width: 68ch; color: #e6eefb; font-size: 17px; }
 .rating-note, .trailer-note { display: flex; align-items: center; gap: 6px; color: #a9bbd6; font-size: 14px; }
-.cast { display: grid; gap: 6px; }
-.cast div { display: flex; gap: 8px; }
-.cast dt { color: var(--accent); font-weight: 700; }
-.cast dd { margin: 0; }
+.facts { margin: 0; padding: 20px; display: grid; gap: 14px; border: 1px solid rgba(255, 255, 255, .16); border-radius: var(--radius-l); background: linear-gradient(160deg, rgba(255, 255, 255, .12), rgba(255, 255, 255, .03)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .14); }
+.facts div { display: grid; gap: 2px; }
+.facts dt { color: var(--accent); font: 700 11px var(--font-title); letter-spacing: .1em; text-transform: uppercase; }
+.facts dd { margin: 0; color: #e6eefb; font-size: 15px; }
 .schedule { margin-top: 32px; padding-bottom: 64px; }
-.schedule h2 { margin-bottom: 14px; font: 800 26px var(--font-title); }
-.schedule-card { padding: 18px; display: grid; gap: 14px; }
+.schedule-head { margin-bottom: 14px; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; }
+.schedule h2 { font: 800 26px var(--font-title); }
+.where { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; color: var(--muted); }
+.link { padding: 0; border: 0; background: none; color: var(--blue); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.choose { padding: 36px 24px; display: grid; justify-items: center; gap: 10px; text-align: center; }
+.choose svg { color: var(--blue); }
+.choose h3 { font: 800 20px var(--font-title); }
+.schedule-card { padding: 18px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+@media (max-width: 1180px) {
+  .hero-grid { grid-template-columns: minmax(160px, 240px) minmax(0, 1fr); }
+  .facts { grid-column: 1 / -1; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+}
 @media (max-width: 680px) {
   .hero-grid { grid-template-columns: 120px 1fr; gap: 18px; }
   .synopsis { font-size: 15px; }

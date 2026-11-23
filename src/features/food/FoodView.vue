@@ -1,20 +1,18 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { MapPin } from '@lucide/vue'
-import ProductGrid from './ProductGrid.vue'
-import ProductCustomizer from './ProductCustomizer.vue'
+import { MapPin, ShoppingBag } from '@lucide/vue'
+import FoodCatalog from './FoodCatalog.vue'
+import OrderLines from './OrderLines.vue'
 import BaseSelect from '@/shared/ui/BaseSelect.vue'
-import StateView from '@/shared/ui/StateView.vue'
-import { useProducts } from '@/app/queries'
 import { useAppStore } from '@/app/stores/app'
 import { useCartStore, type CartLine } from '@/app/stores/cart'
 import { confirmAction, toast } from '@/shared/composables/feedback'
 import { useQueryParam } from '@/features/billboard/filters'
 import { PENDING_TICKET_CODE_KEY } from './selection'
 import { session } from '@/shared/lib/storage'
+import { formatMoney } from '@/shared/lib/money'
 import { completeTicketCode } from '@/shared/lib/text'
-import type { Product } from '@/domain/models'
 
 const app = useAppStore()
 const cart = useCartStore()
@@ -24,8 +22,6 @@ const router = useRouter()
 const initialComplex = typeof route.query.complejo === 'string' ? route.query.complejo : cart.complexId ?? app.primaryComplex?.id ?? null
 const complexId = ref<string | null>(initialComplex)
 const category = useQueryParam('categoria', 'todas')
-const products = useProducts(complexId)
-const customizing = ref<Product | null>(null)
 
 // Un folio llegado desde la confirmación se recuerda para el pago y se quita de la URL
 // para que no quede en el historial ni en enlaces compartidos.
@@ -38,15 +34,11 @@ function forgetPendingCode() {
   pendingCode.value = null
 }
 
-const complexOptions = computed(() => app.complexes.map(complex => ({ value: complex.id, label: complex.name, hint: complex.city })))
-const categories = computed(() => {
-  const seen = new Map<string, string>()
-  for (const product of products.data.value ?? []) seen.set(product.category.code, product.category.name)
-  return [{ value: 'todas', label: 'Todo' }, ...[...seen].map(([value, label]) => ({ value, label }))]
-})
-const shown = computed(() => (products.data.value ?? []).filter(product => category.value === 'todas' || product.category.code === category.value))
-
-watch(complexId, () => { category.value = 'todas' })
+// Los cines de la ciudad elegida van primero.
+const complexOptions = computed(() => [...app.complexes]
+  .sort((a, b) => Number(b.city === app.selectedCity) - Number(a.city === app.selectedCity))
+  .map(complex => ({ value: complex.id, label: complex.name, hint: complex.city })))
+const cartComplex = computed(() => cart.complexId ? app.complexById(cart.complexId) ?? null : null)
 
 async function add(line: Omit<CartLine, 'key'>) {
   if (!complexId.value) return
@@ -59,7 +51,6 @@ async function add(line: Omit<CartLine, 'key'>) {
     if (!ok) return
   }
   cart.add(complexId.value, line)
-  customizing.value = null
   toast(`${line.name} agregado al carrito.`)
 }
 </script>
@@ -75,26 +66,52 @@ async function add(line: Omit<CartLine, 'key'>) {
       <button type="button" class="btn btn-ghost btn-small" @click="forgetPendingCode">Usar otro</button>
     </p>
 
-    <div class="tools card">
-      <BaseSelect v-model="complexId" label="Complejo" :options="complexOptions">
-        <template #icon><MapPin :size="18" /></template>
-      </BaseSelect>
-      <div class="chip-row" role="group" aria-label="Categoría">
-        <button v-for="item in categories" :key="item.value" type="button" class="chip" :aria-pressed="category === item.value" @click="category = item.value">{{ item.label }}</button>
-      </div>
+    <div class="layout">
+      <section class="main" aria-label="Productos">
+        <div class="card where">
+          <BaseSelect v-model="complexId" label="¿En qué complejo recoges?" :options="complexOptions" placeholder="Elige un complejo">
+            <template #icon><MapPin :size="18" /></template>
+          </BaseSelect>
+        </div>
+        <FoodCatalog v-if="complexId" v-model:category="category" :complex-id="complexId" action-label="Agregar al carrito" @add="add" />
+        <div v-else class="card choose">
+          <MapPin :size="30" aria-hidden="true" />
+          <h2>Elige el complejo donde recogerás tu pedido</h2>
+          <p class="muted">Cada complejo tiene su propio menú y existencias.</p>
+        </div>
+      </section>
+
+      <aside class="order card" aria-labelledby="tu-pedido">
+        <h2 id="tu-pedido"><ShoppingBag :size="20" aria-hidden="true" /> Tu pedido</h2>
+        <template v-if="cart.lines.length">
+          <p class="muted small">Recoges en <strong>{{ cartComplex?.name }}</strong></p>
+          <OrderLines :lines="cart.lines" @quantity="cart.setQuantity" />
+          <p v-if="cart.needsTicketCode" class="notice">Necesitarás el folio de tus boletos de este complejo.</p>
+          <div class="total"><span>Total estimado</span><strong>{{ formatMoney(cart.estimateCents) }}</strong></div>
+          <RouterLink to="/dulceria/pago" class="btn btn-primary btn-block">Continuar al pago</RouterLink>
+        </template>
+        <p v-else class="muted empty">Agrega productos para armar tu pedido.</p>
+      </aside>
     </div>
-
-    <StateView :loading="products.isPending.value" :error="products.error.value" :empty="!shown.length" skeleton="cards"
-      empty-title="No hay productos en esta categoría" @retry="products.refetch()">
-      <ProductGrid :products="shown" @choose="customizing = $event" />
-    </StateView>
-
-    <ProductCustomizer :product="customizing" action-label="Agregar al carrito" @close="customizing = null" @add="add" />
   </div>
 </template>
 
 <style scoped>
-.tools { margin: 22px 0 26px; padding: 16px; display: grid; grid-template-columns: minmax(220px, 320px) 1fr; align-items: end; gap: 16px; }
-@media (max-width: 720px) { .tools { grid-template-columns: minmax(0, 1fr); } }
 .pending-code { margin-top: 18px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+.layout { margin-top: 24px; display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; align-items: start; }
+.main { min-width: 0; display: grid; gap: 18px; }
+.where { width: min(100%, 420px); padding: 14px 16px; }
+.choose { padding: 40px 24px; display: grid; justify-items: center; gap: 10px; text-align: center; }
+.choose svg { color: var(--blue); }
+.choose h2 { font: 800 20px var(--font-title); }
+.order { position: sticky; top: calc(var(--header-height) + 16px); padding: 20px; display: grid; gap: 10px; }
+.order h2 { display: flex; align-items: center; gap: 8px; font: 800 20px var(--font-title); }
+.order h2 svg { color: var(--blue); }
+.small { font-size: 14px; }
+.empty { padding: 18px 0; }
+.total { padding-top: 6px; display: flex; justify-content: space-between; font: 800 18px var(--font-title); }
+@media (max-width: 1100px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  .order { position: static; }
+}
 </style>

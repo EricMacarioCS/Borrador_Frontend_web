@@ -2,27 +2,26 @@
 import { computed, onBeforeUnmount, onMounted, ref, toRef, watch } from 'vue'
 import { onBeforeRouteLeave, useRouter } from 'vue-router'
 import { useQuery } from '@tanstack/vue-query'
-import { ArrowLeft, Check, Radio, Trash2, WifiOff } from '@lucide/vue'
+import { ArrowLeft, Check, Radio, WifiOff } from '@lucide/vue'
 import BrandMark from '@/app/layout/BrandMark.vue'
 import SeatMap from '@/features/seats/SeatMap.vue'
 import { useSeatMap } from '@/features/seats/useSeatMap'
-import ProductGrid from '@/features/food/ProductGrid.vue'
-import ProductCustomizer from '@/features/food/ProductCustomizer.vue'
+import FoodCatalog from '@/features/food/FoodCatalog.vue'
+import OrderLines from '@/features/food/OrderLines.vue'
 import OrderSummary from './OrderSummary.vue'
 import PaymentForm from './PaymentForm.vue'
 import { STEPS, useCheckout, type Step } from './useCheckout'
 import BaseSelect from '@/shared/ui/BaseSelect.vue'
 import CountdownTimer from '@/shared/ui/CountdownTimer.vue'
-import QuantityStepper from '@/shared/ui/QuantityStepper.vue'
 import StateView from '@/shared/ui/StateView.vue'
-import { useProducts, usePromotions, useScreening } from '@/app/queries'
+import { usePromotions, useScreening } from '@/app/queries'
 import { useServices } from '@/app/services'
 import { useAppStore } from '@/app/stores/app'
-import { confirmAction } from '@/shared/composables/feedback'
+import { confirmAction, toast } from '@/shared/composables/feedback'
 import { formatMoney } from '@/shared/lib/money'
 import { errorMessage } from '@/shared/lib/messages'
 import { PICKUP_LABELS } from '@/domain/labels'
-import type { Product, SeatCell } from '@/domain/models'
+import type { SeatCell } from '@/domain/models'
 import type { CartLine } from '@/app/stores/cart'
 
 const props = defineProps<{ screeningId: string }>()
@@ -42,7 +41,7 @@ const prices = useQuery({
 })
 const promotions = usePromotions()
 const complexId = computed(() => screening.data.value?.complexId ?? null)
-const products = useProducts(complexId)
+const foodCategory = ref('todas')
 
 const { state, restore, toggleSeat, confirmSeats, goTo, expire, pay, release } = useCheckout(toRef(props, 'screeningId'), complexId)
 const layoutRef = computed(() => screening.data.value?.layout ?? null)
@@ -51,7 +50,6 @@ const seatMap = useSeatMap(toRef(props, 'screeningId'), layoutRef)
 const max = computed(() => app.limits.maxSeatsPerPurchase)
 const selectedSet = computed(() => new Set(state.selected))
 const stepIndex = computed(() => STEPS.findIndex(step => step.id === state.step))
-const customizing = ref<Product | null>(null)
 const paymentForm = ref<InstanceType<typeof PaymentForm>>()
 let leaving = false
 
@@ -109,7 +107,7 @@ function addItem(line: Omit<CartLine, 'key'>) {
   const existing = state.items.find(item => item.key === key)
   if (existing) existing.quantity = Math.min(10, existing.quantity + line.quantity)
   else state.items.push({ ...line, key })
-  customizing.value = null
+  toast(`${line.name} agregado a tu compra.`)
 }
 function setItemQuantity(key: string, quantity: number) {
   if (quantity <= 0) state.items = state.items.filter(item => item.key !== key)
@@ -227,19 +225,14 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload))
           </div>
 
           <div v-else-if="state.step === 'food'" class="panel">
-            <h1>¿Quieres alimentos?</h1>
-            <p class="muted">Se entregan con tus boletos, sin necesidad de folio. Es opcional.</p>
-            <ul v-if="state.items.length" class="added" role="list">
-              <li v-for="item in state.items" :key="item.key">
-                <span><strong>{{ item.name }}</strong><small>{{ item.detail }}</small></span>
-                <QuantityStepper :model-value="item.quantity" :label="item.name" :min="1" @update:model-value="setItemQuantity(item.key, $event)" />
-                <button type="button" class="remove" :aria-label="`Quitar ${item.name}`" @click="setItemQuantity(item.key, 0)"><Trash2 :size="18" /></button>
-              </li>
-            </ul>
-            <BaseSelect v-if="state.items.length" v-model="state.pickup" label="¿Cuándo los recoges?" :options="pickupOptions" />
-            <StateView :loading="products.isPending.value" :error="products.error.value" skeleton="rows" @retry="products.refetch()">
-              <ProductGrid :products="(products.data.value ?? []).filter(product => product.category.code !== 'promocionales')" compact @choose="customizing = $event" />
-            </StateView>
+            <h1>¿Quieres algo de la dulcería?</h1>
+            <p class="muted">El mismo menú de la dulcería. Se entrega con tus boletos, sin necesidad de folio. Es opcional.</p>
+            <div v-if="state.items.length" class="added">
+              <h2>Agregado a tu compra</h2>
+              <OrderLines :lines="state.items" @quantity="setItemQuantity" />
+              <BaseSelect v-model="state.pickup" label="¿Cuándo los recoges?" :options="pickupOptions" />
+            </div>
+            <FoodCatalog v-model:category="foodCategory" :complex-id="complexId" :exclude-categories="['promocionales']" action-label="Agregar a mi compra" @add="addItem" />
           </div>
 
           <div v-else class="panel">
@@ -269,7 +262,6 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload))
       </div>
     </StateView>
 
-    <ProductCustomizer :product="customizing" action-label="Agregar a mi compra" @close="customizing = null" @add="addItem" />
   </div>
 </template>
 
@@ -279,7 +271,7 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload))
 .back { display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; color: #cfe3ff; font: 700 15px var(--font-title); }
 .back:hover { color: var(--accent); }
 .brand { margin-inline: auto; text-decoration: none; }
-.layout { padding-block: 24px 64px; display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 24px; align-items: start; }
+.layout { padding-block: 24px 64px; display: grid; grid-template-columns: minmax(0, 1fr) clamp(340px, 24vw, 420px); gap: 28px; align-items: start; }
 .steps { margin: 0 0 16px; padding: 0; display: flex; gap: 6px; list-style: none; }
 .steps li { flex: 1; }
 .steps button { width: 100%; padding: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-bottom: 3px solid var(--line); background: transparent; color: var(--muted); font: 700 14px var(--font-title); }
@@ -298,11 +290,10 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload))
 .live.reconnecting, .live.disconnected { color: var(--warning); }
 .ticket-rows { display: grid; gap: 10px; }
 .ticket-row { display: grid; grid-template-columns: 120px 1fr; align-items: center; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
-.added { display: grid; gap: 8px; }
-.added li { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; background: var(--accent-soft); }
-.added span { flex: 1; display: grid; }
-.added small { color: var(--muted); }
-.remove { width: 36px; height: 36px; display: grid; place-items: center; border: 0; border-radius: 10px; background: transparent; color: var(--danger); }
+.added { padding: 14px 16px; display: grid; gap: 6px; border-radius: var(--radius-m); background: var(--accent-soft); }
+.added h2 { font: 800 16px var(--font-title); }
+.added :deep(.lines li) { grid-template-columns: minmax(0, 1fr) auto; align-items: center; border-color: var(--line-strong); }
+.added :deep(.controls) { gap: 8px; }
 .closed { max-width: 520px; margin: 40px auto; padding: 32px; display: grid; gap: 12px; justify-items: center; text-align: center; }
 .closed h1 { font: 800 24px var(--font-title); }
 .mobile-bar { display: none; }

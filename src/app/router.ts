@@ -1,4 +1,5 @@
-import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
+import { createRouter, createWebHistory, START_LOCATION, type RouteRecordRaw } from 'vue-router'
+import { useAppStore } from './stores/app'
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -35,7 +36,18 @@ export const router = createRouter({
   }
 })
 
-router.afterEach(to => {
+// Para ver una película hace falta al menos un cine: sin cine se abre el selector y se continúa al elegir.
+// La primera carga (un enlace directo) sí entra, y la vista pide el cine.
+router.beforeEach((to, from) => {
+  if (to.name !== 'movie' || from === START_LOCATION || from.meta.focused) return true
+  const app = useAppStore()
+  if (app.selectedComplexIds.length) return true
+  app.askForComplexes(to.fullPath)
+  return false
+})
+
+router.afterEach((to, _from, failure) => {
+  if (failure) return
   document.title = `${to.meta.title ?? 'Cinépolis'} · Cinépolis`
 })
 

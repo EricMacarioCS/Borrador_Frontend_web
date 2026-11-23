@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
-import { MovieDto, ScreeningDto } from './schemas'
-import { parse, toMovie, toScreening } from './mappers'
+import { ComplexDto, MovieDto, ScreeningDto } from './schemas'
+import { parse, toComplex, toMovie, toScreening } from './mappers'
 import { ApiError } from '@/shared/lib/errors'
 
 const screening = {
@@ -52,6 +52,16 @@ describe('conversión de respuestas', () => {
     const result = toScreening(parse(ScreeningDto, { ...screening, status: 'paused' }, 'screening'))
     expect(result.status).toBe('closed')
     expect(warn).toHaveBeenCalled()
+  })
+
+  it('los formatos del complejo son opcionales y un tipo desconocido se trata como tipo de sala', () => {
+    const complex = { id: 'c-1', slug: 'c', name: 'Centro', city: 'Xalapa', kind: 'traditional', address: '', timeZone: 'America/Mexico_City' }
+    expect(toComplex(parse(ComplexDto, complex, 'complex')).formats).toEqual([])
+    const withFormats = toComplex(parse(ComplexDto, {
+      ...complex,
+      formats: [{ code: 'imax', name: 'IMAX', kind: 'room-type' }, { code: '3d', name: '3D', kind: 'projection' }, { code: 'x', name: 'Nuevo', kind: 'otro' }]
+    }, 'complex'))
+    expect(withFormats.formats.map(format => format.kind)).toEqual(['room-type', 'projection', 'room-type'])
   })
 
   it('sin color de acento se deriva uno estable del título', () => {

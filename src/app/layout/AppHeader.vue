@@ -5,6 +5,7 @@ import { Menu, Search, ShoppingCart, User } from '@lucide/vue'
 import BrandMark from './BrandMark.vue'
 import ComplexBar from './ComplexBar.vue'
 import SearchDialog from './SearchDialog.vue'
+import SearchBox from './SearchBox.vue'
 import CartDrawer from './CartDrawer.vue'
 import BaseDialog from '@/shared/ui/BaseDialog.vue'
 import { useCartStore } from '@/app/stores/cart'
@@ -33,14 +34,15 @@ watch(() => route.fullPath, () => {
 
 <template>
   <header class="header">
-    <div class="container shell">
+    <div class="container wide shell">
       <button type="button" class="icon-btn menu-btn" aria-label="Abrir menú" @click="menuOpen = true"><Menu :size="22" /></button>
       <RouterLink to="/" class="home-link"><BrandMark /></RouterLink>
       <nav class="nav" aria-label="Principal">
         <RouterLink v-for="item in NAV" :key="item.to" :to="item.to" class="nav-link">{{ item.label }}</RouterLink>
       </nav>
+      <SearchBox class="header-search" />
       <div class="actions">
-        <button type="button" class="icon-btn" aria-label="Buscar películas" @click="searchOpen = true"><Search :size="20" /></button>
+        <button type="button" class="icon-btn search-btn" aria-label="Buscar películas o cines" @click="searchOpen = true"><Search :size="20" /></button>
         <RouterLink to="/mi-cuenta" class="icon-btn account" :aria-label="app.session.kind === 'customer' ? 'Mi cuenta' : 'Iniciar sesión'">
           <User :size="20" />
           <span class="account-label">{{ app.session.kind === 'customer' ? 'Mi cuenta' : 'Entrar' }}</span>
@@ -86,7 +88,8 @@ watch(() => route.fullPath, () => {
 @keyframes flow { to { background-position: -200% 0; } }
 .shell { height: 100%; display: flex; align-items: center; gap: 20px; }
 .home-link { display: inline-flex; text-decoration: none; border-radius: 12px; }
-.nav { display: flex; gap: 4px; margin-left: 12px; }
+.nav { display: flex; gap: 2px; margin-left: 8px; }
+.header-search { flex: 1 1 320px; max-width: 560px; margin-left: auto; }
 .nav-link {
   position: relative;
   padding: 9px 12px;
@@ -102,6 +105,7 @@ watch(() => route.fullPath, () => {
   box-shadow: 0 0 18px rgba(56, 189, 248, .4), inset 0 1px 0 rgba(255, 255, 255, .22);
 }
 .actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.header-search + .actions { margin-left: 0; }
 .icon-btn {
   position: relative;
   min-width: 42px;
@@ -136,10 +140,15 @@ watch(() => route.fullPath, () => {
   animation: pop .4s var(--ease);
 }
 @keyframes pop { from { transform: scale(.4); } }
-.menu-btn { display: none; }
+.menu-btn, .search-btn { display: none; }
 .mobile-nav { display: grid; gap: 6px; }
 .mobile-nav a { padding: 14px 12px; border-radius: 10px; color: var(--ink); font: 700 17px var(--font-title); text-decoration: none; }
 .mobile-nav a:hover, .mobile-nav a.router-link-active { background: var(--accent-soft); color: var(--blue); }
+@media (max-width: 1240px) {
+  .header-search { display: none; }
+  .search-btn { display: inline-flex; }
+  .header-search + .actions { margin-left: auto; }
+}
 @media (max-width: 1020px) {
   .nav { display: none; }
   .menu-btn { display: inline-flex; }

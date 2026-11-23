@@ -37,7 +37,8 @@ const label = (day: string) => day === props.today ? 'HOY' : dayParts(day).weekd
 
 <style scoped>
 .dates { display: flex; align-items: stretch; gap: 6px; }
-.strip { flex: 1; min-width: 0; display: flex; gap: 8px; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none; padding: 4px; }
+/* `position: relative` contiene los textos ocultos (posición absoluta) dentro del desplazamiento; sin ella amplían la página en celular. */
+.strip { position: relative; flex: 1; min-width: 0; display: flex; gap: 8px; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none; padding: 4px; }
 .strip::-webkit-scrollbar { display: none; }
 .strip button {
   flex: 0 0 74px;

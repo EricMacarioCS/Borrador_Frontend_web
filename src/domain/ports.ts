@@ -9,9 +9,13 @@ import type {
 } from './models'
 
 export interface MovieQuery {
+  /** Vacío: la cartelera de todos los complejos. */
   complexIds: Id[]
   stage?: MovieStage
   specialEvents?: boolean
+  /** `popularity`: las más vistas primero (boletos vendidos recientes), solo películas a la venta. */
+  sort?: 'popularity'
+  limit?: number
 }
 
 export interface ScreeningQuery {

@@ -9,6 +9,7 @@ import { useServices } from './services'
 
 export const keys = {
   movies: (complexIds: string[], stage?: MovieStage, special?: boolean) => ['movies', complexIds, stage ?? 'all', special ?? 'all'] as const,
+  popularMovies: (complexIds: string[], limit: number) => ['movies', 'popular', complexIds, limit] as const,
   movie: (slug: string) => ['movie', slug] as const,
   screenings: (complexIds: string[], date: string, movieId?: string) => ['screenings', complexIds, date, movieId ?? 'all'] as const,
   screeningDates: (movieId: string, complexIds: string[]) => ['screening-dates', movieId, complexIds] as const,
@@ -27,6 +28,17 @@ export function useMovies(complexIds: MaybeRefOrGetter<string[]>, stage?: MaybeR
   return useQuery({
     queryKey: computed(() => keys.movies(toValue(complexIds), toValue(stage))),
     queryFn: ({ signal }) => catalog.listMovies({ complexIds: toValue(complexIds), stage: toValue(stage) }, signal),
+    placeholderData: keepPreviousData
+  })
+}
+
+/** Las más vistas en los cines indicados (o en todos si no hay). Se refresca cada 10 minutos. */
+export function usePopularMovies(complexIds: MaybeRefOrGetter<string[]>, limit = 5) {
+  const { catalog } = useServices()
+  return useQuery({
+    queryKey: computed(() => keys.popularMovies(toValue(complexIds), limit)),
+    queryFn: ({ signal }) => catalog.listMovies({ complexIds: toValue(complexIds), sort: 'popularity', limit }, signal),
+    staleTime: 10 * 60_000,
     placeholderData: keepPreviousData
   })
 }
@@ -56,7 +68,7 @@ export function useScreeningDates(movieId: MaybeRefOrGetter<string | undefined>,
   return useQuery({
     queryKey: computed(() => keys.screeningDates(toValue(movieId) ?? '', toValue(complexIds))),
     queryFn: ({ signal }) => catalog.listScreeningDates(toValue(movieId)!, toValue(complexIds), signal),
-    enabled: computed(() => Boolean(toValue(movieId)))
+    enabled: computed(() => Boolean(toValue(movieId)) && toValue(complexIds).length > 0)
   })
 }
 

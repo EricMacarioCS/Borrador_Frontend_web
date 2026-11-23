@@ -55,6 +55,7 @@ Más detalle para backend y base de datos:
 
 - [docs/contrato-api.md](docs/contrato-api.md): endpoints, formas JSON, errores, idempotencia y tiempo real.
 - [docs/mapeo-bd.md](docs/mapeo-bd.md): de dónde sale cada dato en las tablas del diagrama ER y qué columnas faltan.
+- [docs/contexto-proyecto.md](docs/contexto-proyecto.md): historia completa, decisiones, errores corregidos y pendientes, para continuar en otro chat o con otro agente.
 
 ## Conectar el API real
 
@@ -100,9 +101,11 @@ CI (`.github/workflows/ci.yml`) corre lint, tipos, pruebas y compilación en cad
 
 Hecho y probado en navegador:
 
-- Inicio, cartelera (fechas, categorías, filtros), película, búsqueda, selección de complejos.
+- Inicio con la cartelera de tus cines y barra de fechas; cartelera con fechas, categorías y filtros de selección múltiple (tipo de sala, proyección, idioma, horario) en una columna lateral; película con ficha técnica.
+- Buscador en el encabezado: películas, cines (ciudad, nombre y formatos) y formatos; sin texto muestra las 5 más populares y los formatos de todos los complejos.
+- Selección de cines de una misma ciudad, cada uno en su burbuja, con buscador por cine o ciudad. Se puede no tener cine: al abrir una película se pide elegirlo.
 - Compra completa: mapa con disponibilidad en vivo entre pestañas, apartado con tiempo límite, tipos de boleto, promociones con motivo cuando no aplican, alimentos, pago aprobado o rechazado, reintento, boleto con QR, cancelación con reembolso.
-- Dulcería con folio validado automáticamente, carrito por complejo y pago.
+- Dulcería con folio validado automáticamente, carrito por complejo y pago. El mismo catálogo se usa en el paso de alimentos de la compra de boletos.
 - Mi cuenta con código de un solo uso, ayuda, páginas legales y 404.
 - Diseño adaptable (barra de acción fija en celular), navegación por teclado del mapa y modales accesibles.
 

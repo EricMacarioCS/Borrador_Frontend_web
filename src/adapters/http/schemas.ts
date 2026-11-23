@@ -14,7 +14,9 @@ const BusinessDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
 
 export const ComplexDto = z.object({
   id: z.string(), slug: z.string(), name: z.string(), city: z.string(),
-  kind: z.string(), address: z.string(), timeZone: z.string()
+  kind: z.string(), address: z.string(), timeZone: z.string(),
+  /** Opcional mientras el backend no lo envíe: la interfaz solo deja de mostrar los formatos. */
+  formats: z.array(z.object({ code: z.string(), name: z.string(), kind: z.string() })).default([])
 })
 
 export const BootstrapDto = z.object({

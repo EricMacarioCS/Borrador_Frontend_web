@@ -203,6 +203,30 @@ describe('folio y cancelación', () => {
   })
 })
 
+describe('catálogo', () => {
+  it('cada complejo trae sus formatos, sin repetir y con su tipo', async () => {
+    const { complexes } = await client('sesion-a').catalog.bootstrap()
+    for (const complex of complexes) {
+      expect(complex.formats.length).toBeGreaterThan(0)
+      expect(new Set(complex.formats.map(format => format.code)).size).toBe(complex.formats.length)
+      expect(complex.formats.every(format => ['room-type', 'projection'].includes(format.kind))).toBe(true)
+    }
+    expect(complexes.find(complex => complex.id === 'xal-centro-vip')?.formats.map(format => format.code)).toEqual(['vip', '3d'])
+  })
+
+  it('las más populares: ordenadas por boletos vendidos, solo a la venta y con límite', async () => {
+    const popular = await client('sesion-a').catalog.listMovies({ complexIds: [], sort: 'popularity', limit: 5 })
+    expect(popular).toHaveLength(5)
+    expect(popular.every(movie => movie.stage !== 'coming-soon')).toBe(true)
+    expect(popular[0]!.id).toBe('m-101')
+  })
+
+  it('rechaza un orden que no existe', async () => {
+    const error = await rejection(client('sesion-a').catalog.listMovies({ complexIds: [], sort: 'rating' as 'popularity' }))
+    expect(error.status).toBe(400)
+  })
+})
+
 describe('seguridad de la sesión', () => {
   it('el servidor rechaza escrituras sin el token CSRF de la sesión', async () => {
     const { screening, free } = await setup()

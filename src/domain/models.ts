@@ -12,6 +12,11 @@ export interface Labeled {
   name: string
 }
 
+/** Formato que ofrece un complejo. Un tipo de sala (IMAX, 4DX) o una proyección (3D): define qué filtro aplica. */
+export interface ComplexFormat extends Labeled {
+  kind: 'room-type' | 'projection'
+}
+
 export interface Complex {
   id: Id
   slug: string
@@ -21,6 +26,8 @@ export interface Complex {
   kind: 'traditional' | 'vip'
   address: string
   timeZone: string
+  /** Formatos de sus salas, para el buscador y el selector de cines. */
+  formats: ComplexFormat[]
 }
 
 export interface Limits {

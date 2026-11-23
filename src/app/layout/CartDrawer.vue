@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { ShoppingCart, Trash2 } from '@lucide/vue'
+import { ShoppingCart } from '@lucide/vue'
 import BaseDialog from '@/shared/ui/BaseDialog.vue'
-import QuantityStepper from '@/shared/ui/QuantityStepper.vue'
+import OrderLines from '@/features/food/OrderLines.vue'
 import { useCartStore } from '@/app/stores/cart'
 import { useAppStore } from '@/app/stores/app'
 import { formatMoney } from '@/shared/lib/money'
@@ -31,19 +31,7 @@ function checkout() {
     </div>
     <template v-else>
       <p class="where">Recoges en <strong>{{ complexName }}</strong></p>
-      <ul class="lines" role="list">
-        <li v-for="line in cart.lines" :key="line.key">
-          <div class="info">
-            <strong>{{ line.name }}</strong>
-            <small v-if="line.detail">{{ line.detail }}</small>
-            <span>{{ formatMoney(line.estimateCents * line.quantity) }}</span>
-          </div>
-          <div class="controls">
-            <QuantityStepper :model-value="line.quantity" :label="line.name" :min="1" @update:model-value="cart.setQuantity(line.key, $event)" />
-            <button type="button" class="remove" :aria-label="`Quitar ${line.name}`" @click="cart.setQuantity(line.key, 0)"><Trash2 :size="18" /></button>
-          </div>
-        </li>
-      </ul>
+      <OrderLines :lines="cart.lines" @quantity="cart.setQuantity" />
       <p v-if="cart.needsTicketCode" class="notice">Para recoger alimentos necesitarás el folio de tus boletos de este complejo.</p>
     </template>
     <template v-if="cart.lines.length" #footer>
@@ -60,14 +48,6 @@ function checkout() {
 <style scoped>
 .empty { padding: 40px 0; display: grid; justify-items: center; gap: 14px; color: var(--muted); }
 .where { margin-bottom: 12px; color: var(--muted); }
-.lines { display: grid; }
-.lines li { padding: 14px 0; display: grid; gap: 10px; border-bottom: 1px solid var(--line); }
-.info { display: grid; gap: 2px; }
-.info small { color: var(--muted); }
-.info span { font-weight: 700; }
-.controls { display: flex; align-items: center; justify-content: space-between; }
-.remove { width: 38px; height: 38px; display: grid; place-items: center; border: 0; border-radius: 10px; background: transparent; color: var(--danger); }
-.remove:hover { background: var(--danger-soft); }
 .notice { margin-top: 14px; }
 .total { display: flex; justify-content: space-between; font: 800 18px var(--font-title); }
 .small { margin: 4px 0 12px; font-size: 13px; }

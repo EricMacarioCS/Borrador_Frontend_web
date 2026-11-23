@@ -21,12 +21,12 @@ Lo que el frontend espera del backend. La fuente de verdad ejecutable son los es
 
 | Método y ruta | Uso | Notas |
 | --- | --- | --- |
-| `GET /bootstrap` | Complejos, límites y `serverNow` | Se llama al arrancar. `serverNow` corrige el reloj del cliente para los contadores. |
+| `GET /bootstrap` | Complejos, límites y `serverNow` | Se llama al arrancar. `serverNow` corrige el reloj del cliente para los contadores. Cada complejo trae `formats: [{ code, name, kind }]` con `kind` = `room-type` (IMAX, 4DX, VIP…) o `projection` (3D), para el buscador y el selector de cines. Si aún no se envía, el frontend solo deja de mostrarlos. |
 | `GET /session` | Sesión actual y token CSRF | Crea la sesión de invitado si no existe. |
 | `POST /session/otp` | Pide código al correo | `{ email }` → `{ resendAfterSeconds, devCode }`; `devCode` siempre `null` fuera de pruebas. |
 | `POST /session/otp/verify` | Verifica el código | `{ email, code }` → sesión de cliente. Límite de intentos (`OTP_LOCKED`). |
 | `DELETE /session` | Cierra sesión | |
-| `GET /movies?complexId=&stage=&specialEvents=` | Cartelera | `complexId` se repite por cada complejo. |
+| `GET /movies?complexId=&stage=&specialEvents=&sort=&limit=` | Cartelera | `complexId` se repite por cada complejo; sin `complexId`, la cartelera de todos. `sort=popularity` ordena por boletos vendidos recientes (por ejemplo, últimos 7 días) en esos complejos y excluye las de Próximamente; `limit` recorta la lista. El buscador pide `sort=popularity&limit=5`. Otro valor de `sort` → `400`. |
 | `GET /movies/{slug}` | Detalle de película | También acepta el id. |
 | `GET /movies/{id}/screening-dates?complexId=` | Días con funciones a la venta | |
 | `GET /screenings?complexId=&date=&movieId=` | Funciones de un día | Incluye ocupación y precio desde. |
@@ -52,11 +52,11 @@ Lo que el frontend espera del backend. La fuente de verdad ejecutable son los es
 ### Reglas que el backend debe garantizar
 
 1. **Apartado atómico.** Dos clientes no pueden apartar el mismo asiento. En PostgreSQL: restricción única parcial sobre `(funcion_id, asiento)` para apartados vigentes y ventas, o `UPDATE ... WHERE estado = 'disponible'` con verificación de filas afectadas, dentro de una transacción.
-2. **Vencimiento absoluto.** Un apartado dura 10 minutos desde su creación; cambiar asientos no lo renueva. Mientras un pago está en proceso se extiende una sola vez.
+2. **Vencimiento absoluto.** Un apartado dura un tiempo fijo desde su creación; cambiar asientos no lo renueva. Mientras un pago está en proceso se extiende una sola vez. El borrador propone 10 minutos y el comentario de `carrito.fecha_expiracion` dice ~15: hay que acordar uno. El frontend no supone la duración: usa `expiresAt`.
 3. **La cotización es del servidor.** El cliente manda identificadores; el importe cobrado sale de la cotización vigente. Si los precios cambiaron, `409 QUOTE_CHANGED`.
-4. **Folio solo con pago confirmado.** `ticketCode` y `admissionToken` son `null` mientras el pago está pendiente o fue rechazado.
+4. **Folio solo con pago confirmado.** `ticketCode` y `admissionToken` son `null` mientras el pago está pendiente o fue rechazado. El folio de boletos **no** es la tabla `folio` de la BD (vales de beneficio externo): requiere columnas nuevas en `venta` (ver [mapeo-bd.md](mapeo-bd.md)).
 5. **Pago rechazado conserva el apartado** para reintentar con otra cotización y otra clave de idempotencia.
-6. **Cancelación** hasta 60 minutos antes de la función (`cancellation.until`), con reembolso asíncrono (`refund-pending` → `refunded`).
+6. **Cancelación** hasta 60 minutos antes de la función (`cancellation.until`), con reembolso asíncrono (`refund-pending` → `refunded`). Las butacas canceladas vuelven a la venta; con el `UNIQUE asiento_id` actual de `detalle_venta_boleto` eso no es posible (ver [mapeo-bd.md](mapeo-bd.md)).
 7. **Privacidad.** Una compra ajena responde `404`, no `403`.
 
 ## Estados

@@ -45,6 +45,6 @@
   --shadow-float: 0 22px 50px rgba(2, 8, 25, .35);
   --ease: cubic-bezier(.2, .8, .2, 1);
   --header-height: 76px;
-  --page-gutter: max(16px, 4vw);
-  --page-max: 1320px;
+  --page-gutter: clamp(16px, 3vw, 48px);
+  --page-max: 1760px;
 }

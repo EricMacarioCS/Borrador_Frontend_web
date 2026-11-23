@@ -42,7 +42,9 @@ function oneOf<T extends string>(value: string, allowed: readonly T[], fallback:
 }
 
 export const toComplex = (dto: Out<typeof ComplexDto>): Complex => ({
-  ...dto, kind: dto.kind === 'vip' ? 'vip' : 'traditional'
+  ...dto,
+  kind: dto.kind === 'vip' ? 'vip' : 'traditional',
+  formats: dto.formats.map(format => ({ code: format.code, name: format.name, kind: format.kind === 'projection' ? 'projection' : 'room-type' }))
 })
 
 export const toBootstrap = (dto: Out<typeof BootstrapDto>): Bootstrap => ({

@@ -33,6 +33,8 @@ ul[role='list'], ol[role='list'] { padding: 0; list-style: none; }
 .skip-link:focus { transform: none; }
 
 .container { width: min(100%, var(--page-max)); margin-inline: auto; padding-inline: var(--page-gutter); }
+/* Encabezado y barras: de orilla a orilla, con el logotipo y las acciones en las esquinas. */
+.container.wide { width: 100%; }
 .page { padding-block: 32px 64px; }
 .page-title { font: 800 clamp(28px, 4vw, 44px)/1.1 var(--font-title); margin-bottom: 8px; }
 .page-lead { color: var(--muted); max-width: 70ch; }

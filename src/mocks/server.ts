@@ -10,7 +10,7 @@ import type {
 import { dateInZone, formatTime } from '@/shared/lib/datetime'
 import {
   CATEGORIES, COMPLEXES, FAQ, HIGHLIGHTS, HOLD_MINUTES, LANGUAGES, LIMITS, MOVIES, PAGES, PRODUCTS, PROJECTIONS, PROMOTIONS,
-  QUOTE_MINUTES, ROOM_TYPES, SERVICE_FEE_CENTS, TICKET_TYPES, TIME_ZONE, childAllowed, findComplex, layoutFor, movieDates,
+  POPULARITY, QUOTE_MINUTES, ROOM_TYPES, SERVICE_FEE_CENTS, TICKET_TYPES, TIME_ZONE, childAllowed, findComplex, formatsOf, layoutFor, movieDates,
   optionId, productId, seatIdsOf, stageOf, ticketPriceCents, today, type ComplexFixture, type MovieFixture, type ProductFixture
 } from './fixtures'
 import { findScreening, hash, presoldSeats, scheduleDays, screeningsFor, type ScreeningFixture } from './schedule'
@@ -437,7 +437,7 @@ function complexIdsOf(query: URLSearchParams) {
 
 route('GET', '/bootstrap', () => ok({
   serverNow: new Date().toISOString(),
-  complexes: COMPLEXES.map(({ baseCents: _b, rooms: _r, ...complex }) => complex),
+  complexes: COMPLEXES.map(({ baseCents: _b, rooms: _r, ...complex }) => ({ ...complex, formats: formatsOf(findComplex(complex.id)!) })),
   limits: LIMITS
 }))
 
@@ -480,15 +480,34 @@ route('DELETE', '/session', (state, request) => {
   return { ...ok(sessionJson(session)), mutated: true }
 })
 
-route('GET', '/movies', (_state, request) => {
+/** Popularidad: base de las películas más los boletos confirmados en los complejos consultados. */
+function popularity(state: MockState, complexIds: string[]) {
+  const scores = new Map(Object.entries(POPULARITY))
+  for (const record of Object.values(state.purchases)) {
+    if (!record.screeningId || record.json.status !== 'confirmed') continue
+    const screening = findScreening(record.screeningId)
+    if (!screening || !complexIds.includes(screening.complex.id)) continue
+    scores.set(screening.movie.id, (scores.get(screening.movie.id) ?? 0) + record.seatIds.length)
+  }
+  return scores
+}
+
+route('GET', '/movies', (state, request) => {
   const stage = request.query.get('stage')
   const special = request.query.get('specialEvents')
-  const items = MOVIES
+  const sort = request.query.get('sort')
+  if (sort !== null && sort !== 'popularity') fail(400, 'MALFORMED_REQUEST', 'sort solo admite popularity.')
+  const limit = Number(request.query.get('limit') ?? MOVIES.length)
+  if (!Number.isInteger(limit) || limit < 1) fail(400, 'MALFORMED_REQUEST', 'limit debe ser un entero positivo.')
+  let list = MOVIES
     .filter(movie => { const { lastDay } = movieDates(movie); return !lastDay || lastDay >= today() })
     .filter(movie => !stage || stageOf(movie) === stage)
     .filter(movie => special === null || String(movie.isSpecialEvent) === special)
-    .map(movieJson)
-  return ok({ items })
+  if (sort === 'popularity') {
+    const scores = popularity(state, complexIdsOf(request.query))
+    list = list.filter(movie => stageOf(movie) !== 'coming-soon').sort((a, b) => (scores.get(b.id) ?? 0) - (scores.get(a.id) ?? 0))
+  }
+  return ok({ items: list.slice(0, limit).map(movieJson) })
 })
 
 route('GET', '/movies/:slug', (_state, _request, [slug]) => {

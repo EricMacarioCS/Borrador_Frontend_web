@@ -7,10 +7,12 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ChevronLeft, ChevronRight, Pause, Play, Ticket } from '@lucide/vue'
 import PosterArt from '@/shared/ui/PosterArt.vue'
 import QuickBuy from './QuickBuy.vue'
+import { useAppStore } from '@/app/stores/app'
 import { STAGE_LABELS, durationLabel } from '@/domain/labels'
 import type { Movie } from '@/domain/models'
 
 const props = defineProps<{ movies: Movie[] }>()
+const app = useAppStore()
 const index = ref(0)
 const buying = ref(false)
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -28,6 +30,13 @@ function restart() {
 }
 watch([paused, buying], restart)
 watch(index, () => { buying.value = false })
+
+// Sin cine elegido primero se pide el cine y luego se muestra la película.
+function buy() {
+  if (!movie.value) return
+  if (!app.selectedComplexIds.length) app.askForComplexes(`/peliculas/${movie.value.slug}`)
+  else buying.value = !buying.value
+}
 onMounted(restart)
 onBeforeUnmount(() => clearInterval(timer))
 </script>
@@ -49,7 +58,7 @@ onBeforeUnmount(() => clearInterval(timer))
         </p>
         <p class="synopsis">{{ movie.synopsis }}</p>
         <div class="actions">
-          <button type="button" class="buy" :aria-expanded="buying" @click="buying = !buying"><Ticket :size="18" /> Comprar boletos</button>
+          <button type="button" class="buy" :aria-expanded="buying" @click="buy"><Ticket :size="18" /> Comprar boletos</button>
           <RouterLink :to="`/peliculas/${movie.slug}`" class="btn btn-dark">Ver detalles</RouterLink>
         </div>
       </div>
