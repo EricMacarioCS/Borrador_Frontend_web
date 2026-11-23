@@ -1,0 +1,50 @@
+/* Paleta, tipografía y efectos de la web v3. Los componentes usan estas variables, nunca colores sueltos. */
+:root {
+  --navy-950: #081129;
+  --navy-900: #0b1530;
+  --navy-800: #142747;
+  --navy-700: #203b65;
+  --blue: #174ea6;
+  --blue-strong: #123b86;
+  --accent: #38bdf8;
+  --accent-soft: #e6f6fe;
+  --violet: #7c5cff;
+  --ink: #0b1530;
+  --muted: #52627d;
+  --line: #dce5f0;
+  --line-strong: #c4d5ee;
+  --surface: #ffffff;
+  --surface-soft: #f4f7fc;
+  --success: #067647;
+  --success-soft: #e7f6ee;
+  --warning: #974006;
+  --warning-soft: #fff3e6;
+  --danger: #b42318;
+  --danger-soft: #fdecea;
+  --gold: #ffc93c;
+
+  --occ-low: #2f8cff;
+  --occ-medium: #22c55e;
+  --occ-high: #f59e0b;
+  --occ-full: #ef4444;
+
+  --glow: rgba(56, 189, 248, .6);
+  --grad-dark: radial-gradient(90% 170% at 8% 0%, rgba(56, 189, 248, .24), transparent 55%), radial-gradient(70% 150% at 96% 10%, rgba(124, 92, 255, .24), transparent 60%), linear-gradient(180deg, #203b65 0%, #142747 46%, #081129 100%);
+  --grad-blue: linear-gradient(120deg, #123b86 0%, #174ea6 45%, #2d6fe0 100%);
+  --grad-action: linear-gradient(120deg, #7be0ff 0%, #38bdf8 42%, #4f8cff 100%);
+  --grad-page: linear-gradient(180deg, #fff 0%, #f3f7fe 55%, #e9f0fc 100%);
+  --grad-menu: radial-gradient(90% 60% at 100% 0%, rgba(124, 92, 255, .32), transparent 70%), linear-gradient(180deg, #102a5c, #081129);
+
+  --font-title: 'Montserrat Variable', 'Montserrat', system-ui, sans-serif;
+  --font-body: 'Inter Variable', 'Inter', system-ui, sans-serif;
+
+  --radius-s: 8px;
+  --radius-m: 13px;
+  --radius-l: 18px;
+  --shadow-card: 0 10px 30px rgba(11, 21, 48, .08);
+  --shadow-float: 0 22px 50px rgba(2, 8, 25, .35);
+  --ease: cubic-bezier(.2, .8, .2, 1);
+  --header-height: 76px;
+  --page-gutter: max(16px, 4vw);
+  --page-max: 1320px;
+}

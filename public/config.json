@@ -1,0 +1,6 @@
+{
+  "environmentName": "local",
+  "supportEmail": null,
+  "features": { "realtimeSeats": true, "onlinePayments": true, "accounts": true },
+  "mock": { "latencyMs": [120, 420], "failureRate": 0 }
+}
