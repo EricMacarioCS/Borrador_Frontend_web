@@ -16,7 +16,6 @@ import type { Product } from '@/domain/models'
 
 const props = withDefaults(defineProps<{
   complexId: string | null
-  actionLabel: string
   /** Categorías que no aplican en este contexto. */
   excludeCategories?: string[]
 }>(), { excludeCategories: () => [] })
@@ -73,7 +72,7 @@ function add(line: Omit<CartLine, 'key'>) {
       <ProductGrid :products="shown" @choose="customizing = $event" />
     </StateView>
 
-    <ProductCustomizer :product="customizing" :action-label="actionLabel" @close="customizing = null" @add="add" />
+    <ProductCustomizer :product="customizing" @close="customizing = null" @add="add" />
   </div>
 </template>
 

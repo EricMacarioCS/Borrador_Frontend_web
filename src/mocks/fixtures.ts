@@ -122,9 +122,16 @@ export function layoutFor(room: RoomFixture): LayoutFixture {
     rows: Array.from({ length: shape.rows }, (_, row) => {
       const letter = String.fromCharCode(65 + row)
       const kinds = Array.from({ length: columns }, (_, column) => {
-        if (shape.group) return (column + 1) % (shape.group + 1) === 0 ? 'gap' : shape.premium ? 'premium' : 'standard'
+        // Todas las salas tienen lugares para silla de ruedas, junto a un acompañante, en los extremos de una fila.
+        const edge = column < 2 || column >= columns - 2
+        const wheelchair = column % 2 === 0 ? 'accessible' : 'companion'
+        // En las salas con butacas en grupos van en la primera fila.
+        if (shape.group) {
+          if ((column + 1) % (shape.group + 1) === 0) return 'gap'
+          return row === 0 && edge ? wheelchair : shape.premium ? 'premium' : 'standard'
+        }
         if (shape.aisles.includes(column)) return 'gap'
-        if (row === 2 && (column < 2 || column >= columns - 2)) return column % 2 === 0 ? 'accessible' : 'companion'
+        if (row === 2 && edge) return wheelchair
         // La última fila deja libres los extremos para la salida.
         if (row === shape.rows - 1 && (column === 0 || column === columns - 1)) return 'gap'
         return 'standard'
@@ -281,7 +288,7 @@ export const childAllowed = (ratingCode: string) => !RESTRICTED_FOR_CHILDREN.has
 /* Promociones. Las condiciones se evalúan en el servidor, nunca en la interfaz. */
 
 export interface PromotionFixture extends Omit<PromotionJson, 'validFrom' | 'validTo'> {
-  rule: { kind: '2x1' | 'percent' | 'none'; percent?: number; weekdays?: number[]; roomTypes?: RoomFixture['type'][]; projections?: ('2d' | '3d')[] }
+  rule: { kind: '2x1' | 'percent' | 'none'; percent?: number; weekdays?: number[]; roomTypes?: RoomFixture['type'][]; projections?: ('2d' | '3d')[]; startsBefore?: string }
 }
 
 export const PROMOTIONS: PromotionFixture[] = [
@@ -301,7 +308,7 @@ export const PROMOTIONS: PromotionFixture[] = [
     id: 'promo-matine', title: 'Matiné familiar', tag: 'Familia', appliesOnline: true,
     description: '15 % de descuento en funciones de fin de semana antes de las 15:00.',
     conditions: 'Funciones de sábado y domingo que inicien antes de las 15:00. No es acumulable.',
-    rule: { kind: 'percent', percent: 15, weekdays: [0, 6] }
+    rule: { kind: 'percent', percent: 15, weekdays: [0, 6], startsBefore: '15:00' }
   },
   {
     id: 'promo-msi', title: 'Meses sin intereses', tag: 'Banco', appliesOnline: false,

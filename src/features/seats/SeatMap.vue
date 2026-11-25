@@ -4,7 +4,7 @@
  * se distingue por color, forma y texto, no solo por color.
  */
 import { computed, nextTick, onMounted, ref } from 'vue'
-import { Accessibility, Minus, Plus } from '@lucide/vue'
+import { Accessibility, Armchair, Minus, Plus } from '@lucide/vue'
 import type { SeatCell, SeatLayout, SeatStatus } from '@/domain/models'
 
 const props = defineProps<{
@@ -34,6 +34,10 @@ function stateOf(seat: SeatCell): State {
   return (props.statuses[seat.id] ?? 'available') === 'available' ? 'available' : 'taken'
 }
 const disabled = (seat: SeatCell) => stateOf(seat) === 'taken' || (stateOf(seat) === 'available' && props.limitReached)
+
+// La simbología solo menciona silla de ruedas si el plano tiene esos lugares.
+const hasAccessible = computed(() => props.layout.rows.some(row => row.cells.some(cell => cell?.kind === 'accessible')))
+const iconFor = (seat: SeatCell) => seat.kind === 'accessible' ? Accessibility : Armchair
 
 const firstSeat = computed(() => props.layout.rows.flatMap(row => row.cells).find(cell => cell && stateOf(cell) !== 'taken') ?? null)
 const tabTarget = computed(() => focusId.value ?? firstSeat.value?.id ?? null)
@@ -82,10 +86,10 @@ function onKey(event: KeyboardEvent, rowIndex: number, cellIndex: number) {
   <div class="seat-map">
     <div class="toolbar">
       <ul class="legend" role="list" aria-label="Simbología">
-        <li><i class="dot available" /> Disponible</li>
-        <li><i class="dot selected" /> Tu selección</li>
-        <li><i class="dot taken" /> Ocupado</li>
-        <li><Accessibility :size="16" aria-hidden="true" /> Silla de ruedas</li>
+        <li><span class="seat key available" aria-hidden="true"><Armchair /></span> Disponible</li>
+        <li><span class="seat key selected" aria-hidden="true"><Armchair /></span> Tu selección</li>
+        <li><span class="seat key taken" aria-hidden="true"><Armchair /></span> Ocupado</li>
+        <li v-if="hasAccessible"><span class="seat key available accessible" aria-hidden="true"><Accessibility /></span> Silla de ruedas</li>
       </ul>
       <div class="zoom" role="group" aria-label="Acercamiento">
         <button type="button" :disabled="zoom === 0" aria-label="Alejar" @click="zoom--"><Minus :size="16" /></button>
@@ -106,7 +110,7 @@ function onKey(event: KeyboardEvent, rowIndex: number, cellIndex: number) {
                   :tabindex="tabTarget === cell.id ? 0 : -1" :aria-label="label(cell)" :aria-pressed="stateOf(cell) === 'selected'"
                   :aria-disabled="disabled(cell) || undefined"
                   @focus="focusId = cell.id" @keydown="onKey($event, rowIndex, cellIndex)" @click="!disabled(cell) && emit('toggle', cell)">
-                  <Accessibility v-if="cell.kind === 'accessible'" :size="13" aria-hidden="true" />
+                  <component :is="iconFor(cell)" aria-hidden="true" />
                 </button>
               </span>
             </template>
@@ -120,12 +124,8 @@ function onKey(event: KeyboardEvent, rowIndex: number, cellIndex: number) {
 
 <style scoped>
 .toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
-.legend { display: flex; flex-wrap: wrap; gap: 8px 16px; padding: 0; list-style: none; color: var(--muted); font-size: 13px; }
-.legend li { display: inline-flex; align-items: center; gap: 6px; }
-.dot { width: 16px; height: 14px; border-radius: 4px 4px 3px 3px; display: inline-block; }
-.dot.available { background: #fff; border: 1.5px solid #6d86ad; }
-.dot.selected { background: var(--grad-action); box-shadow: 0 0 8px var(--glow); }
-.dot.taken { background: #c9d3e2; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 0; list-style: none; color: var(--muted); font-size: 13px; }
+.legend li { display: inline-flex; align-items: center; gap: 7px; }
 .zoom { display: flex; align-items: center; gap: 8px; font: 700 13px var(--font-title); }
 .zoom button { width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid var(--line-strong); border-radius: 10px; background: #fff; color: var(--blue); }
 .zoom button:disabled { opacity: .4; }
@@ -153,18 +153,25 @@ function onKey(event: KeyboardEvent, rowIndex: number, cellIndex: number) {
   padding: 0;
   display: grid;
   place-items: center;
-  border: 1.5px solid #6d86ad;
-  border-radius: 7px 7px 4px 4px;
-  background: #fff;
+  border: 1px solid rgba(120, 170, 255, .55);
+  border-radius: 8px 8px 5px 5px;
+  background: linear-gradient(180deg, #fff, #dbe9ff);
   color: var(--blue);
   transition: transform .15s var(--ease), box-shadow .2s, background .2s;
 }
+.seat svg { width: 66%; height: 66%; stroke-width: 2.2; }
+/* La simbología reutiliza el mismo dibujo del mapa. */
+.seat.key { --seat: 24px; flex: none; }
 .seat.available:hover:not([aria-disabled]) { transform: translateY(-2px); box-shadow: 0 0 0 2px var(--accent), 0 0 14px var(--glow); }
 .seat.selected { border-color: transparent; background: var(--grad-action); color: var(--navy-900); box-shadow: 0 0 12px var(--glow); animation: pick .3s var(--ease); }
-.seat.taken { border-color: transparent; background: #3a4a66; cursor: not-allowed; }
-.seat.taken::after { content: ''; width: 45%; height: 2px; background: #8698b5; transform: rotate(-45deg); }
-.seat.taken svg { display: none; }
-.seat.premium { border-radius: 10px 10px 6px 6px; }
+.seat.accessible.available { border-color: var(--violet); background: linear-gradient(180deg, #8f73ff, #6a47ee); color: #fff; }
+.seat.accessible.selected svg { stroke-width: 2.6; }
+.seat.taken { position: relative; border-color: rgba(134, 152, 181, .3); background: #2c3a56; color: #7b8dac; cursor: not-allowed; }
+/* Además del color, la diagonal distingue los lugares ocupados. */
+.seat.taken::after { content: ''; position: absolute; width: 100%; height: 1.5px; background: #9aabc7; transform: rotate(-45deg); }
+.seat.accessible.taken { border-color: rgba(124, 92, 255, .6); }
+.seat.key.taken { cursor: default; }
+.seat.premium { border-radius: 11px 11px 7px 7px; }
 .seat[aria-disabled]:not(.taken) { opacity: .55; cursor: not-allowed; }
 .seat:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 @keyframes pick { 50% { transform: scale(1.18); } }

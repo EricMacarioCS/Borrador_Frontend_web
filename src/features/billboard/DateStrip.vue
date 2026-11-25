@@ -25,7 +25,7 @@ const label = (day: string) => day === props.today ? 'HOY' : dayParts(day).weekd
     <div ref="strip" class="strip" role="group" aria-label="Fecha de la función">
       <button v-for="day in days" :key="day" type="button" :aria-pressed="model === day" :title="formatDate(day)"
         :disabled="available ? !available.includes(day) : false" @click="model = day">
-        <span>{{ label(day) }}</span>
+        <span aria-hidden="true">{{ label(day) }}</span>
         <strong>{{ dayParts(day).day }}</strong>
         <small>{{ dayParts(day).month }}</small>
         <span class="visually-hidden">{{ formatDate(day) }}</span>
@@ -36,34 +36,39 @@ const label = (day: string) => day === props.today ? 'HOY' : dayParts(day).weekd
 </template>
 
 <style scoped>
-.dates { display: flex; align-items: stretch; gap: 6px; }
+.dates { display: flex; align-items: center; gap: 6px; }
 /* `position: relative` contiene los textos ocultos (posición absoluta) dentro del desplazamiento; sin ella amplían la página en celular. */
-.strip { position: relative; flex: 1; min-width: 0; display: flex; gap: 8px; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none; padding: 4px; }
+.strip { position: relative; flex: 1; min-width: 0; display: flex; gap: 4px; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none; padding: 8px 6px 12px; }
 .strip::-webkit-scrollbar { display: none; }
 .strip button {
-  flex: 0 0 74px;
-  min-height: 74px;
-  padding: 8px 4px;
+  position: relative;
+  flex: 0 0 68px;
+  min-height: 84px;
+  padding: 10px 4px 14px;
   display: grid;
+  align-content: center;
   justify-items: center;
-  gap: 1px;
+  gap: 2px;
   scroll-snap-align: start;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: linear-gradient(180deg, #fff, #edf4ff);
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: transparent;
   color: var(--ink);
-  transition: border-color .2s, box-shadow .2s, transform .2s;
+  transition: background .25s, border-color .25s, box-shadow .25s, color .25s, transform .25s var(--ease);
 }
-.strip button span, .strip button small { font: 700 11px var(--font-title); color: var(--muted); letter-spacing: .06em; }
-.strip button strong { font: 800 22px var(--font-title); }
-.strip button:hover:not(:disabled, [aria-pressed='true']) { border-color: var(--accent); box-shadow: 0 0 16px rgba(56, 189, 248, .4); transform: translateY(-2px); }
-.strip button[aria-pressed='true'] { background: var(--grad-blue); color: #fff; border-color: transparent; box-shadow: inset 0 3px 0 var(--accent), 0 0 18px rgba(56, 189, 248, .45); }
-.strip button[aria-pressed='true'] span, .strip button[aria-pressed='true'] small { color: #cfe5ff; }
-.strip button:disabled { opacity: .4; }
-.arrow { flex: 0 0 40px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 12px; background: #fff; color: var(--blue); }
-.arrow:hover { background: var(--accent-soft); box-shadow: 0 0 13px rgba(56, 189, 248, .25); }
+.strip button span, .strip button small { font: 700 10.5px var(--font-title); color: var(--muted); letter-spacing: .08em; }
+.strip button strong { font: 800 22px/1.15 var(--font-title); }
+.strip button:focus-visible { border-radius: var(--radius-pill); }
+.strip button:hover:not(:disabled, [aria-pressed='true']) { background: rgba(56, 189, 248, .11); border-color: rgba(56, 189, 248, .35); transform: translateY(-2px); }
+.strip button[aria-pressed='true'] { background: var(--grad-blue); color: #fff; border-color: rgba(123, 224, 255, .55); box-shadow: 0 8px 18px -6px rgba(56, 189, 248, .7), inset 0 1px 0 rgba(255, 255, 255, .18); }
+/* Punto de luz bajo el día elegido. */
+.strip button[aria-pressed='true']::after { content: ''; position: absolute; bottom: 7px; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px 2px var(--glow); }
+.strip button[aria-pressed='true'] span, .strip button[aria-pressed='true'] small { color: #cfe9ff; }
+.strip button:disabled { opacity: .35; }
+.arrow { flex: 0 0 38px; height: 38px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 50%; background: var(--glass-strong); color: var(--blue); box-shadow: var(--shadow-soft); transition: background .25s, box-shadow .25s; }
+.arrow:hover { background: var(--accent-soft); box-shadow: 0 0 0 3px rgba(56, 189, 248, .2); }
 @media (max-width: 560px) {
   .arrow { display: none; }
-  .strip button { flex-basis: 62px; }
+  .strip button { flex-basis: 60px; }
 }
 </style>

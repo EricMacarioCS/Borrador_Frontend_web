@@ -73,7 +73,7 @@ async function add(line: Omit<CartLine, 'key'>) {
             <template #icon><MapPin :size="18" /></template>
           </BaseSelect>
         </div>
-        <FoodCatalog v-if="complexId" v-model:category="category" :complex-id="complexId" action-label="Agregar al carrito" @add="add" />
+        <FoodCatalog v-if="complexId" v-model:category="category" :complex-id="complexId" @add="add" />
         <div v-else class="card choose">
           <MapPin :size="30" aria-hidden="true" />
           <h2>Elige el complejo donde recogerás tu pedido</h2>

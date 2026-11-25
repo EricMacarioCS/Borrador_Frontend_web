@@ -12,8 +12,19 @@ export function occupancyTone(percent: number): OccupancyTone {
 }
 
 export const OCCUPANCY_LEGEND: { tone: OccupancyTone; label: string }[] = [
-  { tone: 'low', label: '0–24 %' },
-  { tone: 'medium', label: '25–49 %' },
-  { tone: 'high', label: '50–74 %' },
-  { tone: 'full', label: '75–100 %' }
+  { tone: 'low', label: 'Muchos lugares' },
+  { tone: 'medium', label: 'Buena disponibilidad' },
+  { tone: 'high', label: 'Quedan pocos' },
+  { tone: 'full', label: 'Casi lleno' }
 ]
+
+export const freeSeatsText = (free: number) => free === 1 ? '1 lugar libre' : `${free} lugares libres`
+
+/** Texto corto de disponibilidad: con la sala holgada se da el número; al llenarse, un aviso. */
+export function availabilityText(unavailable: number, capacity: number): string {
+  const free = Math.max(0, capacity - unavailable)
+  if (free === 0) return 'Agotado'
+  const tone = occupancyTone(occupancyPercent(unavailable, capacity))
+  if (tone === 'full') return 'Casi lleno'
+  return tone === 'high' ? 'Quedan pocos' : freeSeatsText(free)
+}

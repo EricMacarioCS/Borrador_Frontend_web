@@ -46,7 +46,7 @@ Lo que el frontend espera del backend. La fuente de verdad ejecutable son los es
 | `GET /me/purchases` | Compras de la sesión o del correo verificado | |
 | `POST /purchases/{id}/cancellations` | Cancelar con reembolso | Cancela también alimentos ligados al folio. |
 | `GET /complexes/{id}/products` | Dulcería del complejo | Productos con reglas de personalización. |
-| `GET /promotions` | Promociones vigentes | |
+| `GET /promotions` | Promociones vigentes | Campo opcional `eligibility`: `{ weekdays, roomTypes, projections, startsBefore }` (`null` en un campo = sin restricción; `weekdays` usa 0 = domingo; `startsBefore` es `HH:MM` local del complejo). La web solo lo usa para ofrecer las promociones de cada función; `POST /quotes` sigue validando y calculando. Si no llega, se ofrecen todas las de compra en línea. |
 | `GET /content/home`, `/content/pages/{slug}`, `/content/faq` | Contenido | Podría venir de un CMS. |
 
 ### Reglas que el backend debe garantizar

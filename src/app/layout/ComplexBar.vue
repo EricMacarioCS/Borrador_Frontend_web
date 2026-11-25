@@ -30,7 +30,8 @@ const app = useAppStore()
 
 <style scoped>
 .bar {
-  background: radial-gradient(60% 240% at 85% 50%, rgba(124, 92, 255, .38), transparent 70%), linear-gradient(100deg, #0f3478 0%, #174ea6 45%, #1d62c4 100%);
+  background: radial-gradient(55% 240% at 85% 50%, rgba(56, 189, 248, .22), transparent 70%), linear-gradient(100deg, #0e1d40 0%, #15336a 55%, #134a74 100%);
+  box-shadow: inset 0 -1px 0 rgba(123, 224, 255, .2);
   color: #fff;
 }
 .inner { min-height: 50px; padding-block: 7px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }

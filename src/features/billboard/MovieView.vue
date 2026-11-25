@@ -129,15 +129,15 @@ h1 { color: var(--accent-movie); font: 800 clamp(30px, 4.4vw, 54px)/1.05 var(--f
 .facts div { display: grid; gap: 2px; }
 .facts dt { color: var(--accent); font: 700 11px var(--font-title); letter-spacing: .1em; text-transform: uppercase; }
 .facts dd { margin: 0; color: #e6eefb; font-size: 15px; }
-.schedule { margin-top: 32px; padding-bottom: 64px; }
+.schedule { margin-top: 40px; padding-bottom: 80px; }
 .schedule-head { margin-bottom: 14px; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; }
-.schedule h2 { font: 800 26px var(--font-title); }
+.schedule h2 { font: 800 28px var(--font-title); letter-spacing: -.02em; }
 .where { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; color: var(--muted); }
 .link { padding: 0; border: 0; background: none; color: var(--blue); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
 .choose { padding: 36px 24px; display: grid; justify-items: center; gap: 10px; text-align: center; }
 .choose svg { color: var(--blue); }
 .choose h3 { font: 800 20px var(--font-title); }
-.schedule-card { padding: 18px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+.schedule-card { padding: 20px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
 @media (max-width: 1180px) {
   .hero-grid { grid-template-columns: minmax(160px, 240px) minmax(0, 1fr); }
   .facts { grid-column: 1 / -1; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }

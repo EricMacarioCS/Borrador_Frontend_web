@@ -208,7 +208,7 @@ function promotionCheck(id: string | null, screening: ScreeningFixture | null) {
   if (rule.weekdays && !rule.weekdays.includes(weekday(screening.date))) return reject('No aplica el día de esta función.')
   if (rule.roomTypes && !rule.roomTypes.includes(screening.room.type)) return reject(`Solo en salas ${rule.roomTypes.map(type => ROOM_TYPES[type].name).join(', ')}.`)
   if (rule.projections && !rule.projections.includes(screening.projection)) return reject(`Solo en ${rule.projections.map(item => PROJECTIONS[item].name).join(', ')}.`)
-  if (promotion.id === 'promo-matine' && formatTime(screening.startsAt, TIME_ZONE) >= '15:00') return reject('Solo funciones antes de las 15:00.')
+  if (rule.startsBefore && formatTime(screening.startsAt, TIME_ZONE) >= rule.startsBefore) return reject(`Solo funciones antes de las ${rule.startsBefore}.`)
   return { promotion, applied: true, reason: null }
 }
 
@@ -690,7 +690,13 @@ route('GET', '/complexes/:id/products', (state, _request, [id]) => {
 })
 
 route('GET', '/promotions', () => ok({
-  items: PROMOTIONS.map(({ rule: _rule, ...promotion }) => ({ ...promotion, validFrom: today(), validTo: null }))
+  items: PROMOTIONS.map(({ rule, ...promotion }) => ({
+    ...promotion, validFrom: today(), validTo: null,
+    eligibility: rule.kind === 'none' ? null : {
+      weekdays: rule.weekdays ?? null, roomTypes: rule.roomTypes ?? null,
+      projections: rule.projections ?? null, startsBefore: rule.startsBefore ?? null
+    }
+  }))
 }))
 
 route('GET', '/content/home', () => ok({

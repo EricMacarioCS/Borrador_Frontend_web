@@ -10,6 +10,8 @@ import FoodCatalog from '@/features/food/FoodCatalog.vue'
 import OrderLines from '@/features/food/OrderLines.vue'
 import OrderSummary from './OrderSummary.vue'
 import PaymentForm from './PaymentForm.vue'
+import TicketTypePicker from './TicketTypePicker.vue'
+import { promotionApplies } from './promotions'
 import { STEPS, useCheckout, type Step } from './useCheckout'
 import BaseSelect from '@/shared/ui/BaseSelect.vue'
 import CountdownTimer from '@/shared/ui/CountdownTimer.vue'
@@ -58,16 +60,22 @@ onMounted(async () => {
   if (paidId) void router.replace(`/compras/${paidId}`)
 })
 
-const typeOptions = computed(() => (prices.data.value ?? []).map(price => ({
-  value: price.ticketTypeId,
-  label: `${price.name} · ${formatMoney(price.priceCents)}`,
-  hint: price.allowed ? price.description : price.reason ?? 'No disponible',
-  disabled: !price.allowed
-})))
+/** Solo las promociones que pueden aplicar al día, formato y horario de esta función. */
+const eligiblePromotions = computed(() => {
+  const current = screening.data.value
+  if (!current) return []
+  const timeZone = app.complexById(current.complexId)?.timeZone
+  return (promotions.data.value ?? []).filter(item => promotionApplies(item, current, timeZone))
+})
 const promotionOptions = computed(() => [
   { value: '', label: 'Sin promoción' },
-  ...(promotions.data.value ?? []).filter(item => item.appliesOnline).map(item => ({ value: item.id, label: item.title, hint: item.description }))
+  ...eligiblePromotions.value.map(item => ({ value: item.id, label: item.title, hint: item.description }))
 ])
+// Una promoción recuperada de la sesión que ya no se ofrece no debe quedar elegida sin verse.
+watch(() => [eligiblePromotions.value, state.restored, state.promotionId], () => {
+  if (!screening.data.value || !promotions.data.value || !state.promotionId) return
+  if (!eligiblePromotions.value.some(item => item.id === state.promotionId)) state.promotionId = null
+})
 const promotionModel = computed({
   get: () => state.promotionId ?? '',
   set: value => { state.promotionId = value || null }
@@ -149,9 +157,17 @@ const nextLabel = computed(() => {
 })
 const nextDisabled = computed(() => state.busy || (state.step === 'seats' ? !state.selected.length : !state.quote || state.quoting || Boolean(state.quoteError)))
 
+const confirmLeave = () => confirmAction({
+  title: 'Salir de la compra',
+  text: 'Si sales, perderás los asientos que elegiste y volverán a estar disponibles para otras personas.',
+  cancelLabel: 'Seguir comprando',
+  confirmLabel: 'Salir',
+  danger: true
+})
+
 async function leave() {
   if (state.hold) {
-    const ok = await confirmAction({ title: 'Salir de la compra', text: 'Se liberarán los asientos apartados.', confirmLabel: 'Salir y liberar', danger: true })
+    const ok = await confirmLeave()
     if (!ok) return
     await release()
   }
@@ -161,7 +177,7 @@ async function leave() {
 
 onBeforeRouteLeave(async () => {
   if (leaving || !state.hold) return true
-  const ok = await confirmAction({ title: 'Salir de la compra', text: 'Se liberarán los asientos apartados.', confirmLabel: 'Salir y liberar', danger: true })
+  const ok = await confirmLeave()
   if (ok) await release()
   return ok
 })
@@ -214,14 +230,19 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload))
 
           <div v-else-if="state.step === 'tickets'" class="panel">
             <h1>Tipos de boleto</h1>
-            <p class="muted">Asigna un tipo a cada asiento. Solo se aplica una promoción por compra.</p>
-            <div class="ticket-rows">
-              <div v-for="seatId in state.hold?.seatIds ?? []" :key="seatId" class="ticket-row">
-                <strong>Asiento {{ seatLabel(seatId) }}</strong>
-                <BaseSelect v-model="state.types[seatId]!" :label="`Tipo de boleto del asiento ${seatLabel(seatId)}`" hide-label :options="typeOptions" />
+            <p class="muted">Todos tus boletos empiezan como <strong>General</strong>. Si alguno es para otra persona, cambia su tipo aquí.</p>
+            <StateView :loading="prices.isPending.value" :error="prices.error.value" skeleton="rows" @retry="prices.refetch()">
+              <div class="ticket-rows">
+                <TicketTypePicker v-for="seatId in state.hold?.seatIds ?? []" :key="seatId" v-model="state.types[seatId]!"
+                  :seat-label="seatLabel(seatId)" :prices="prices.data.value ?? []" />
               </div>
+            </StateView>
+            <div v-if="eligiblePromotions.length" class="promotion">
+              <BaseSelect v-model="promotionModel" label="Promoción para esta función" :options="promotionOptions" />
+              <p class="muted small">Solo se aplica una promoción por compra.</p>
             </div>
-            <BaseSelect v-model="promotionModel" label="Promoción" :options="promotionOptions" />
+            <p v-else-if="promotions.data.value" class="muted small">No hay promociones para esta función.</p>
+            <p v-else-if="promotions.error.value" class="muted small">No pudimos consultar las promociones. Puedes continuar sin ellas.</p>
           </div>
 
           <div v-else-if="state.step === 'food'" class="panel">
@@ -232,7 +253,7 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload))
               <OrderLines :lines="state.items" @quantity="setItemQuantity" />
               <BaseSelect v-model="state.pickup" label="¿Cuándo los recoges?" :options="pickupOptions" />
             </div>
-            <FoodCatalog v-model:category="foodCategory" :complex-id="complexId" :exclude-categories="['promocionales']" action-label="Agregar a mi compra" @add="addItem" />
+            <FoodCatalog v-model:category="foodCategory" :complex-id="complexId" :exclude-categories="['promocionales']" @add="addItem" />
           </div>
 
           <div v-else class="panel">
@@ -282,14 +303,15 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload))
 .steps .done button { color: var(--success); border-color: var(--success); }
 .steps .done i { background: var(--success); color: #fff; }
 .notice { margin-bottom: 14px; }
-.panel { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; padding: 20px; border: 1px solid var(--line); border-radius: var(--radius-l); background: rgba(255, 255, 255, .85); }
-.panel h1 { font: 800 24px var(--font-title); }
+.panel { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; padding: 24px; border: 1px solid var(--line); border-radius: var(--radius-l); background: var(--glass); box-shadow: var(--shadow-card); backdrop-filter: blur(14px); }
+.panel h1 { font: 800 26px var(--font-title); letter-spacing: -.02em; }
 .panel-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
 .live { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; }
 .live.connected { color: var(--success); }
 .live.reconnecting, .live.disconnected { color: var(--warning); }
-.ticket-rows { display: grid; gap: 10px; }
-.ticket-row { display: grid; grid-template-columns: 120px 1fr; align-items: center; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.ticket-rows { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+.promotion { display: grid; gap: 6px; }
+.small { font-size: 13px; }
 .added { padding: 14px 16px; display: grid; gap: 6px; border-radius: var(--radius-m); background: var(--accent-soft); }
 .added h2 { font: 800 16px var(--font-title); }
 .added :deep(.lines li) { grid-template-columns: minmax(0, 1fr) auto; align-items: center; border-color: var(--line-strong); }
@@ -314,6 +336,6 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload))
 }
 @media (max-width: 560px) {
   .steps button { flex-direction: column; gap: 4px; font-size: 12px; }
-  .ticket-row { grid-template-columns: minmax(0, 1fr); }
+  .panel { padding: 16px 14px; }
 }
 </style>

@@ -142,6 +142,18 @@ export interface Promotion {
   validFrom: string
   validTo: string | null
   appliesOnline: boolean
+  /** Funciones en las que puede aplicar. Si no llega, la interfaz no la descarta. */
+  eligibility?: PromotionEligibility | null
+}
+
+/** Un campo en `null` significa "sin restricción". */
+export interface PromotionEligibility {
+  /** 0 es domingo y 6 es sábado, según la fecha de negocio de la función. */
+  weekdays: number[] | null
+  roomTypes: string[] | null
+  projections: string[] | null
+  /** Hora local del complejo (HH:MM); la función debe iniciar antes. */
+  startsBefore: string | null
 }
 
 /* Dulcería: reglas de personalización como en la base de datos (mínimo, máximo y opciones). */

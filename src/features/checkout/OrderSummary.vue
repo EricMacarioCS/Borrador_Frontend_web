@@ -56,7 +56,7 @@ const labels = computed(() => {
 </template>
 
 <style scoped>
-.summary { position: sticky; top: 16px; display: grid; overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-l); background: #fff; box-shadow: var(--shadow-card); }
+.summary { position: sticky; top: 16px; display: grid; overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-l); background: var(--glass-strong); box-shadow: var(--shadow-card); }
 .head { padding: 18px; display: flex; gap: 14px; background: var(--grad-dark); color: #fff; }
 .poster { width: 72px; flex-shrink: 0; }
 .title { display: block; margin-bottom: 4px; font: 800 18px var(--font-title); }

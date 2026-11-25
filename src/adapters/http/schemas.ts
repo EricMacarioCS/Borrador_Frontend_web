@@ -77,7 +77,14 @@ export const HoldDto = z.object({
 
 export const PromotionDto = z.object({
   id: z.string(), title: z.string(), tag: z.string(), description: z.string(), conditions: z.string(),
-  validFrom: BusinessDate, validTo: BusinessDate.nullable(), appliesOnline: z.boolean()
+  validFrom: BusinessDate, validTo: BusinessDate.nullable(), appliesOnline: z.boolean(),
+  // Opcional: en qué funciones puede aplicar. La interfaz solo lo usa para filtrar; el servidor valida al cotizar.
+  eligibility: z.object({
+    weekdays: z.array(z.number().int().min(0).max(6)).nullable(),
+    roomTypes: z.array(z.string()).nullable(),
+    projections: z.array(z.string()).nullable(),
+    startsBefore: z.string().regex(/^\d{2}:\d{2}$/).nullable()
+  }).nullish()
 })
 
 export const ProductDto = z.object({

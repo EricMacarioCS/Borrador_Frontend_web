@@ -7,6 +7,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockBackend } from '@/mocks'
 import { resetForTests } from '@/mocks/store'
 import { businessToday } from '@/mocks/server'
+import { COMPLEXES, layoutFor } from '@/mocks/fixtures'
+import { promotionApplies } from '@/features/checkout/promotions'
 import { createHttpAdapters } from '@/adapters/http/adapters'
 import { addDays } from '@/shared/lib/datetime'
 import { ApiError } from '@/shared/lib/errors'
@@ -133,6 +135,38 @@ describe('cotización y compra', () => {
     expect(quote.discountCents).toBe(0)
   })
 
+  it('el filtro de promociones de la interfaz coincide con lo que acepta la cotización', async () => {
+    const { a } = await setup()
+    const online = (await a.content.listPromotions()).filter(item => item.appliesOnline)
+    const offered = new Set<string>()
+    for (let day = 1; day <= 7; day++) {
+      const screenings = await a.catalog.listScreenings({ complexIds: ['xal-centro'], date: addDays(businessToday(), day) })
+      // La primera y la última función del día de cada combinación de sala y proyección.
+      const sample = new Map<string, (typeof screenings)[number]>()
+      for (const item of screenings.filter(entry => entry.status === 'on-sale')) {
+        const key = `${item.room.type.code}|${item.projection.code}`
+        if (!sample.has(key)) sample.set(key, item)
+        sample.set(`${key}|última`, item)
+      }
+      for (const screening of sample.values()) {
+        const snapshot = await a.seats.getSeatState(screening.id)
+        const seatIds = Object.entries(snapshot.seats).filter(([, status]) => status === 'available').map(([id]) => id).slice(0, 2)
+        if (seatIds.length < 2) continue
+        const hold = await a.checkout.createHold(screening.id, seatIds, crypto.randomUUID())
+        for (const promotion of online) {
+          const quote = await a.checkout.createQuote({
+            complexId: screening.complexId, holdId: hold.id, ticketCodeGrant: null,
+            tickets: seatIds.map(seatId => ({ seatId, ticketTypeId: 'tt-general' })), items: [], promotionId: promotion.id, pickup: null
+          })
+          const applies = promotionApplies(promotion, screening)
+          expect(quote.promotion?.applied, `${promotion.id} en ${screening.id}`).toBe(applies)
+          if (applies) offered.add(promotion.id)
+        }
+      }
+    }
+    expect(offered.size).toBe(online.length)
+  }, 60_000)
+
   it('crear la compra es idempotente y se puede recuperar por su clave', async () => {
     const { a, screening, free } = await setup()
     const { quote, purchase, key } = await buy(a, screening, [free[0]!])
@@ -204,6 +238,13 @@ describe('folio y cancelación', () => {
 })
 
 describe('catálogo', () => {
+  it('todas las salas tienen lugares para silla de ruedas', () => {
+    for (const room of COMPLEXES.flatMap(complex => complex.rooms)) {
+      const cells = layoutFor(room).rows.flatMap(row => row.cells)
+      expect(cells.some(cell => cell?.kind === 'accessible'), room.id).toBe(true)
+    }
+  })
+
   it('cada complejo trae sus formatos, sin repetir y con su tipo', async () => {
     const { complexes } = await client('sesion-a').catalog.bootstrap()
     for (const complex of complexes) {
