@@ -2,14 +2,13 @@
  * Raíz de composición: el único archivo que decide qué implementación usa cada puerto.
  * Pasar de la simulación a la API real es cambiar `apiMode` en `config.json`.
  */
-import type { InjectionKey } from 'vue'
-import { inject } from 'vue'
+import { createContext, useContext } from 'react'
 import type { Services } from '@/domain/ports'
 import { createHttpAdapters } from '@/adapters/http/adapters'
 import type { AppConfig } from './config'
 
-export const ServicesKey: InjectionKey<Services> = Symbol('services')
-export const ConfigKey: InjectionKey<AppConfig> = Symbol('config')
+export const ServicesContext = createContext<Services | null>(null)
+export const ConfigContext = createContext<AppConfig | null>(null)
 
 export async function createServices(config: AppConfig): Promise<Services> {
   if (config.apiMode === 'http') {
@@ -31,13 +30,13 @@ export async function createServices(config: AppConfig): Promise<Services> {
 }
 
 export function useConfig(): AppConfig {
-  const config = inject(ConfigKey)
+  const config = useContext(ConfigContext)
   if (!config) throw new Error('La configuración no se cargó.')
   return config
 }
 
 export function useServices(): Services {
-  const services = inject(ServicesKey)
+  const services = useContext(ServicesContext)
   if (!services) throw new Error('Los servicios no se inicializaron.')
   return services
 }

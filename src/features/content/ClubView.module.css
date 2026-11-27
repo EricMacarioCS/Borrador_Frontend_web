@@ -1,0 +1,9 @@
+.hero { padding: 36px; border-radius: var(--radius-l); background: radial-gradient(70% 120% at 100% 0%, rgba(255, 201, 60, .35), transparent 60%), var(--grad-dark); color: #fff; }
+.hero :global(.eyebrow) { color: var(--gold); }
+.hero h1 { margin: 8px 0 12px; font: 800 clamp(28px, 4vw, 44px) var(--font-title); }
+.hero p { max-width: 70ch; color: #dbe6f7; }
+.levels { margin-top: 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; }
+.level { padding: 24px; display: grid; gap: 8px; border: 1px solid var(--line); border-radius: var(--radius-l); background: linear-gradient(160deg, #fff, color-mix(in srgb, var(--accent) calc(10% + var(--n) * 12%), #fff)); box-shadow: var(--shadow-card); }
+.level h2 { color: var(--blue); font: 800 24px var(--font-title); }
+.level p { color: var(--muted); }
+.note { margin-top: 14px; font-size: 13px; }

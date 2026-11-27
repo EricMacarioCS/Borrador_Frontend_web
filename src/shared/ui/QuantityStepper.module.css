@@ -1,0 +1,15 @@
+.stepper { display: inline-flex; align-items: center; gap: 10px; }
+.stepper button {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  background: linear-gradient(180deg, #fff, #edf4ff);
+  color: var(--blue);
+  transition: box-shadow .2s, background .2s, color .2s;
+}
+.stepper button:hover:not(:disabled) { background: var(--grad-blue); color: #fff; box-shadow: 0 0 16px rgba(79, 140, 255, .5); }
+.stepper button:disabled { opacity: .45; }
+.stepper output { min-width: 22px; text-align: center; font: 700 16px var(--font-title); }

@@ -1,37 +1,39 @@
-import { computed, type Ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useCallback } from 'react'
+import { useSearchParams } from 'react-router'
 import type { Movie, Screening } from '@/domain/models'
 import { formatTime } from '@/shared/lib/datetime'
 
-/** Un parámetro de la URL como estado: la vista se puede compartir y "Atrás" funciona. */
-export function useQueryParam(name: string, fallback: string): Ref<string> {
-  const route = useRoute()
-  const router = useRouter()
-  return computed({
-    get: () => {
-      const value = route.query[name]
-      return typeof value === 'string' && value ? value : fallback
-    },
-    set: value => {
-      const query = { ...route.query, [name]: value === fallback ? undefined : value }
-      void router.replace({ query })
-    }
-  })
+/**
+ * Un parámetro de la URL como estado: la vista se puede compartir y "Atrás" funciona.
+ * Cambiarlo reemplaza la entrada del historial y no mueve el desplazamiento de la página.
+ */
+export function useQueryParam(name: string, fallback: string): [string, (value: string) => void] {
+  const [params, setParams] = useSearchParams()
+  const raw = params.get(name)
+  const set = useCallback((value: string) => {
+    setParams(prev => {
+      const next = new URLSearchParams(prev)
+      if (value === fallback) next.delete(name)
+      else next.set(name, value)
+      return next
+    }, { replace: true, preventScrollReset: true })
+  }, [name, fallback, setParams])
+  return [raw || fallback, set]
 }
 
 /** Varios valores en un parámetro de la URL, separados por comas: `?sala=imax,4dx`. */
-export function useQueryList(name: string): Ref<string[]> {
-  const route = useRoute()
-  const router = useRouter()
-  return computed({
-    get: () => {
-      const value = route.query[name]
-      return typeof value === 'string' ? value.split(',').filter(Boolean) : []
-    },
-    set: values => {
-      void router.replace({ query: { ...route.query, [name]: values.length ? [...new Set(values)].join(',') : undefined } })
-    }
-  })
+export function useQueryList(name: string): [string[], (values: string[]) => void] {
+  const [params, setParams] = useSearchParams()
+  const raw = params.get(name)
+  const set = useCallback((values: string[]) => {
+    setParams(prev => {
+      const next = new URLSearchParams(prev)
+      if (values.length) next.set(name, [...new Set(values)].join(','))
+      else next.delete(name)
+      return next
+    }, { replace: true, preventScrollReset: true })
+  }, [name, setParams])
+  return [raw ? raw.split(',').filter(Boolean) : [], set]
 }
 
 export const CATEGORIES = [

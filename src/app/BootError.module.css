@@ -1,0 +1,4 @@
+.boot-error { min-height: 100dvh; display: grid; place-items: center; padding: 20px; background: var(--grad-dark); }
+.card { max-width: 460px; padding: 32px; display: grid; gap: 14px; text-align: center; justify-items: center; }
+.card h1 { font: 800 26px var(--font-title); }
+.card p, .card small { color: var(--muted); }

@@ -2,9 +2,14 @@
  * Máquina de estados de la compra de boletos.
  * El navegador solo propone (asientos, tipos, promoción, alimentos); el servidor aparta, cotiza y cobra.
  * Lo mínimo para recuperar la compra tras recargar se guarda en sessionStorage, nunca precios ni datos de pago.
+ *
+ * El estado vive en un almacén propio de cada pantalla de compra: las operaciones asíncronas
+ * leen siempre el valor actual y no una copia vieja del render.
  */
-import { computed, reactive, watch, type Ref } from 'vue'
+import { useEffect, useRef, useState } from 'react'
+import { createStore, useStore, type StoreApi } from 'zustand'
 import { useServices } from '@/app/services'
+import type { CheckoutPort } from '@/domain/ports'
 import type { Customer, Hold, Quote, QuoteRequest } from '@/domain/models'
 import type { CartLine } from '@/app/stores/cart'
 import { ApiError, toApiError } from '@/shared/lib/errors'
@@ -31,7 +36,7 @@ interface Saved {
   purchaseKey: string | null
 }
 
-interface CheckoutState {
+export interface CheckoutState {
   step: Step
   /** Asientos elegidos en el mapa; se apartan al confirmar. */
   selected: string[]
@@ -61,42 +66,45 @@ export function forgetCheckout(screeningId: string) {
   session.remove(savedKey(screeningId))
 }
 
-export function useCheckout(screeningId: Ref<string>, complexId: Ref<string | null>) {
-  const { checkout } = useServices()
-  const storageKey = computed(() => savedKey(screeningId.value))
+const initialState = (): CheckoutState => ({
+  step: 'seats',
+  selected: [],
+  hold: null,
+  types: {},
+  promotionId: null,
+  items: [],
+  pickup: 'before',
+  quote: null,
+  quoteError: null,
+  quoting: false,
+  busy: false,
+  error: null,
+  conflicts: [],
+  purchaseKey: null,
+  restored: false
+})
 
-  const state = reactive<CheckoutState>({
-    step: 'seats',
-    selected: [],
-    hold: null,
-    types: {},
-    promotionId: null,
-    items: [],
-    pickup: 'before',
-    quote: null,
-    quoteError: null,
-    quoting: false,
-    busy: false,
-    error: null,
-    conflicts: [],
-    purchaseKey: null,
-    restored: false
-  })
+function createCheckout(checkout: CheckoutPort, screeningId: string, getComplexId: () => string | null) {
+  const store: StoreApi<CheckoutState> = createStore<CheckoutState>(initialState)
+  const get = store.getState
+  const set = (patch: Partial<CheckoutState>) => store.setState(patch)
+  const storageKey = savedKey(screeningId)
 
   function persist() {
-    session.set(storageKey.value, {
+    const state = get()
+    session.set(storageKey, {
       holdId: state.hold?.id ?? null, step: state.step, types: state.types, promotionId: state.promotionId,
       items: state.items, pickup: state.pickup, purchaseKey: state.purchaseKey
     } satisfies Saved)
   }
 
   function forget() {
-    session.remove(storageKey.value)
+    session.remove(storageKey)
   }
 
   /** Recupera la compra en curso. Devuelve el id de compra si ya se había pagado. */
   async function restore(): Promise<string | null> {
-    const saved = session.get<Saved | null>(storageKey.value, null)
+    const saved = session.get<Saved | null>(storageKey, null)
     try {
       if (saved?.purchaseKey) {
         const purchase = await checkout.findPurchaseByKey(saved.purchaseKey)
@@ -107,67 +115,74 @@ export function useCheckout(screeningId: Ref<string>, complexId: Ref<string | nu
       }
       if (saved?.holdId) {
         const hold = await checkout.getHold(saved.holdId)
-        Object.assign(state, {
+        set({
           hold, selected: [...hold.seatIds],
           types: Object.fromEntries(hold.seatIds.map(id => [id, saved.types[id] ?? 'tt-general'])),
           promotionId: saved.promotionId,
           items: saved.items, pickup: saved.pickup, step: saved.step, purchaseKey: null
         })
-        if (state.step !== 'seats') void requote()
+        if (get().step !== 'seats') void requote()
       }
     } catch {
       // El apartado venció o ya no existe: se empieza de nuevo sin mostrar error.
       forget()
     } finally {
-      state.restored = true
+      set({ restored: true })
     }
     return null
   }
 
   function toggleSeat(seatId: string, max: number) {
-    state.error = null
-    state.conflicts = []
-    if (state.selected.includes(seatId)) state.selected = state.selected.filter(id => id !== seatId)
-    else if (state.selected.length < max) state.selected = [...state.selected, seatId]
-    else state.error = `Puedes elegir hasta ${max} asientos por compra.`
+    const { selected } = get()
+    set({ error: null, conflicts: [] })
+    if (selected.includes(seatId)) set({ selected: selected.filter(id => id !== seatId) })
+    else if (selected.length < max) set({ selected: [...selected, seatId] })
+    else set({ error: `Puedes elegir hasta ${max} asientos por compra.` })
   }
 
-  const holdMatches = computed(() => state.hold !== null &&
-    state.hold.seatIds.length === state.selected.length && state.selected.every(id => state.hold!.seatIds.includes(id)))
+  function holdMatches() {
+    const { hold, selected } = get()
+    return hold !== null && hold.seatIds.length === selected.length && selected.every(id => hold.seatIds.includes(id))
+  }
 
   async function confirmSeats(onConflict: () => Promise<void>) {
-    if (!state.selected.length || state.busy) return
-    state.busy = true
-    state.error = null
+    if (!get().selected.length || get().busy) return
+    set({ busy: true, error: null })
     try {
-      if (!state.hold) state.hold = await checkout.createHold(screeningId.value, state.selected, newIdempotencyKey())
-      else if (!holdMatches.value) state.hold = await checkout.updateHold(state.hold.id, state.selected)
+      let hold = get().hold
+      if (!hold) hold = await checkout.createHold(screeningId, get().selected, newIdempotencyKey())
+      else if (!holdMatches()) hold = await checkout.updateHold(hold.id, get().selected)
       // El apartado del servidor manda; los tipos de los asientos que salieron se descartan.
-      state.selected = [...state.hold.seatIds]
-      state.types = Object.fromEntries(state.hold.seatIds.map(id => [id, state.types[id] ?? 'tt-general']))
-      state.step = 'tickets'
+      const types = get().types
+      set({
+        hold,
+        selected: [...hold.seatIds],
+        types: Object.fromEntries(hold.seatIds.map(id => [id, types[id] ?? 'tt-general'])),
+        step: 'tickets'
+      })
       persist()
       void requote()
     } catch (error) {
       const apiError = toApiError(error)
       if (apiError.code === 'SEAT_CONFLICT') {
         const taken = Array.isArray(apiError.extra.conflictingSeatIds) ? apiError.extra.conflictingSeatIds as string[] : []
-        state.conflicts = taken
-        state.selected = state.selected.filter(id => !taken.includes(id))
+        set({ conflicts: taken, selected: get().selected.filter(id => !taken.includes(id)) })
         await onConflict()
       } else if (apiError.code === 'HOLD_EXPIRED' || apiError.code === 'NOT_FOUND') {
-        state.hold = null
+        set({ hold: null })
       }
-      state.error = errorMessage(apiError)
+      set({ error: errorMessage(apiError) })
     } finally {
-      state.busy = false
+      set({ busy: false })
     }
   }
 
   function request(): QuoteRequest | null {
-    if (!state.hold || !complexId.value) return null
+    const state = get()
+    const complexId = getComplexId()
+    if (!state.hold || !complexId) return null
     return {
-      complexId: complexId.value,
+      complexId,
       holdId: state.hold.id,
       ticketCodeGrant: null,
       tickets: state.hold.seatIds.map(seatId => ({ seatId, ticketTypeId: state.types[seatId] ?? 'tt-general' })),
@@ -182,66 +197,78 @@ export function useCheckout(screeningId: Ref<string>, complexId: Ref<string | nu
     const body = request()
     if (!body) return
     const run = ++quoteRun
-    state.quoting = true
+    set({ quoting: true })
     try {
       const quote = await checkout.createQuote(body)
-      if (run === quoteRun) {
-        state.quote = quote
-        state.quoteError = null
-      }
+      if (run === quoteRun) set({ quote, quoteError: null })
     } catch (error) {
       if (run !== quoteRun) return
       const apiError = toApiError(error)
-      state.quoteError = apiError
+      set({ quoteError: apiError })
       if (apiError.code === 'HOLD_EXPIRED') expire()
     } finally {
-      if (run === quoteRun) state.quoting = false
+      if (run === quoteRun) set({ quoting: false })
     }
   }
 
-  let timer = 0
-  watch(() => [state.types, state.promotionId, state.items, state.pickup], () => {
-    if (state.step === 'seats' || !state.hold) return
-    persist()
-    clearTimeout(timer)
-    timer = window.setTimeout(() => void requote(), 250)
-  }, { deep: true })
+  /**
+   * Cada cambio en lo que se cotiza se guarda y vuelve a cotizar tras una pausa breve.
+   * Devuelve la limpieza; se llama desde un efecto para que sobreviva al doble montaje de StrictMode.
+   */
+  function watch() {
+    let timer = 0
+    const unsubscribe = store.subscribe((state, previous) => {
+      if (state.types === previous.types && state.promotionId === previous.promotionId &&
+        state.items === previous.items && state.pickup === previous.pickup) return
+      if (state.step === 'seats' || !state.hold) return
+      persist()
+      clearTimeout(timer)
+      timer = window.setTimeout(() => void requote(), 250)
+    })
+    return () => {
+      clearTimeout(timer)
+      unsubscribe()
+    }
+  }
 
   function goTo(step: Step) {
-    state.error = null
-    state.step = step
+    set({ error: null, step })
     persist()
   }
 
   function expire() {
-    state.hold = null
-    state.quote = null
-    state.step = 'seats'
-    state.error = 'Venció el tiempo para tus asientos. Elige de nuevo; tu selección se conservó si siguen libres.'
+    set({
+      hold: null,
+      quote: null,
+      step: 'seats',
+      error: 'Venció el tiempo para tus asientos. Elige de nuevo; tu selección se conservó si siguen libres.'
+    })
     forget()
   }
 
   /** Paga con una clave de idempotencia por intento. Si se pierde la respuesta, se consulta por esa clave. */
   async function pay(customer: Customer, paymentMethod: string): Promise<string | null> {
-    if (state.busy) return null
-    state.busy = true
-    state.error = null
+    if (get().busy) return null
+    set({ busy: true, error: null })
     try {
-      if (!state.quote || state.quote.expiresAt.getTime() - serverNow() < 5000) {
+      const current = get().quote
+      if (!current || current.expiresAt.getTime() - serverNow() < 5000) {
         await requote()
-        if (!state.quote) throw state.quoteError ?? new ApiError({ status: 0, code: 'QUOTE_EXPIRED' })
+        if (!get().quote) throw get().quoteError ?? new ApiError({ status: 0, code: 'QUOTE_EXPIRED' })
       }
-      state.purchaseKey ??= newIdempotencyKey()
+      const quote = get().quote!
+      const purchaseKey = get().purchaseKey ?? newIdempotencyKey()
+      set({ purchaseKey })
       persist()
       try {
         // Lo guardado se conserva: si el pago se rechaza, «Intentar de nuevo» recupera el apartado.
-        const purchase = await checkout.createPurchase({ quoteId: state.quote.id, customer, paymentMethod }, state.purchaseKey)
+        const purchase = await checkout.createPurchase({ quoteId: quote.id, customer, paymentMethod }, purchaseKey)
         if (purchase.payment.kind === 'redirect') window.location.assign(purchase.payment.url)
         return purchase.id
       } catch (error) {
         const apiError = toApiError(error)
         if (apiError.code === 'NETWORK' || apiError.code === 'TIMEOUT' || apiError.status >= 500) {
-          const found = await checkout.findPurchaseByKey(state.purchaseKey).catch(() => null)
+          const found = await checkout.findPurchaseByKey(purchaseKey).catch(() => null)
           if (found) return found.id
         }
         throw apiError
@@ -249,23 +276,38 @@ export function useCheckout(screeningId: Ref<string>, complexId: Ref<string | nu
     } catch (error) {
       const apiError = toApiError(error)
       if (apiError.code === 'QUOTE_EXPIRED' || apiError.code === 'QUOTE_CHANGED') {
-        state.purchaseKey = null
+        set({ purchaseKey: null })
         await requote()
       }
       if (apiError.code === 'HOLD_EXPIRED') expire()
-      state.error = errorMessage(apiError)
+      set({ error: errorMessage(apiError) })
       return null
     } finally {
-      state.busy = false
+      set({ busy: false })
     }
   }
 
   async function release() {
-    const hold = state.hold
+    const hold = get().hold
     forget()
-    state.hold = null
+    set({ hold: null })
     if (hold) await checkout.releaseHold(hold.id).catch(() => undefined)
   }
 
-  return { state, holdMatches, restore, toggleSeat, confirmSeats, requote, goTo, expire, pay, release, persist }
+  return {
+    store, set, restore, toggleSeat, holdMatches, confirmSeats, requote, goTo, expire, pay, release, persist, watch
+  }
+}
+
+export type Checkout = ReturnType<typeof createCheckout>
+
+export function useCheckout(screeningId: string, complexId: string | null) {
+  const { checkout } = useServices()
+  const complexRef = useRef(complexId)
+  useEffect(() => { complexRef.current = complexId }, [complexId])
+  // Una compra por función: la pantalla se vuelve a montar al cambiar de ruta.
+  const [api] = useState(() => createCheckout(checkout, screeningId, () => complexRef.current))
+  useEffect(() => api.watch(), [api])
+  const state = useStore(api.store)
+  return { state, ...api }
 }

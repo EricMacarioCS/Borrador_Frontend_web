@@ -1,0 +1,52 @@
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 0; list-style: none; color: var(--muted); font-size: 13px; }
+.legend li { display: inline-flex; align-items: center; gap: 7px; }
+.zoom { display: flex; align-items: center; gap: 8px; font: 700 13px var(--font-title); }
+.zoom button { width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid var(--line-strong); border-radius: 10px; background: #fff; color: var(--blue); }
+.zoom button:disabled { opacity: .4; }
+.scroller { overflow: auto; padding: 8px 4px 16px; border-radius: var(--radius-l); background: radial-gradient(70% 50% at 50% 0%, rgba(56, 189, 248, .16), transparent 70%), linear-gradient(180deg, #0b1530, #081129); }
+.room { --seat: calc(26px * var(--zoom)); width: max-content; min-width: 100%; padding: 14px 18px; display: grid; justify-items: center; }
+.screen {
+  width: min(80%, 720px);
+  margin-bottom: 26px;
+  padding-top: 10px;
+  border-top: 4px solid var(--accent);
+  border-radius: 50% 50% 0 0 / 22px 22px 0 0;
+  box-shadow: 0 -10px 30px rgba(56, 189, 248, .45);
+  color: #9fc3f5;
+  font: 700 12px var(--font-title);
+  letter-spacing: .4em;
+  text-align: center;
+}
+.rows { display: grid; gap: 6px; }
+.row { display: flex; align-items: center; justify-content: center; gap: 5px; }
+.row-label { width: 22px; color: #8aa3c8; font: 700 12px var(--font-title); text-align: center; }
+.gap { width: var(--seat); height: var(--seat); }
+.seat {
+  width: var(--seat);
+  height: var(--seat);
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(120, 170, 255, .55);
+  border-radius: 8px 8px 5px 5px;
+  background: linear-gradient(180deg, #fff, #dbe9ff);
+  color: var(--blue);
+  transition: transform .15s var(--ease), box-shadow .2s, background .2s;
+}
+.seat svg { width: 66%; height: 66%; stroke-width: 2.2; }
+/* La simbología reutiliza el mismo dibujo del mapa. */
+.seat.key { --seat: 24px; flex: none; }
+.seat.available:hover:not([aria-disabled]) { transform: translateY(-2px); box-shadow: 0 0 0 2px var(--accent), 0 0 14px var(--glow); }
+.seat.selected { border-color: transparent; background: var(--grad-action); color: var(--navy-900); box-shadow: 0 0 12px var(--glow); animation: pick .3s var(--ease); }
+.seat.accessible.available { border-color: var(--violet); background: linear-gradient(180deg, #8f73ff, #6a47ee); color: #fff; }
+.seat.accessible.selected svg { stroke-width: 2.6; }
+.seat.taken { position: relative; border-color: rgba(134, 152, 181, .3); background: #2c3a56; color: #7b8dac; cursor: not-allowed; }
+/* Además del color, la diagonal distingue los lugares ocupados. */
+.seat.taken::after { content: ''; position: absolute; width: 100%; height: 1.5px; background: #9aabc7; transform: rotate(-45deg); }
+.seat.accessible.taken { border-color: rgba(124, 92, 255, .6); }
+.seat.key.taken { cursor: default; }
+.seat.premium { border-radius: 11px 11px 7px 7px; }
+.seat[aria-disabled]:not(.taken) { opacity: .55; cursor: not-allowed; }
+.seat:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+@keyframes pick { 50% { transform: scale(1.18); } }

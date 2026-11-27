@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { createPinia, setActivePinia } from 'pinia'
-import { useAppStore } from './app'
+import { createAppStore, type AppState } from './app'
 import type { Complex } from '@/domain/models'
 
 const complex = (id: string, city: string, formats: Complex['formats'] = []): Complex => ({
@@ -15,14 +14,15 @@ const LIMITS = { maxSeatsPerPurchase: 10, scheduleDays: 14, cancelMinutesBefore:
 
 function store(saved?: string[]) {
   if (saved) localStorage.setItem('cp-selected-complexes', JSON.stringify(saved))
-  const app = useAppStore()
-  app.setComplexes(COMPLEXES, LIMITS)
-  return app
+  // El almacén lee los cines guardados al crearse.
+  const app = createAppStore()
+  app.getState().setComplexes(COMPLEXES, LIMITS)
+  // Cada lectura toma el estado actual, como lo vería un componente después de la acción.
+  return new Proxy({} as AppState, { get: (_, key) => app.getState()[key as keyof AppState] })
 }
 
 beforeEach(() => {
   localStorage.clear()
-  setActivePinia(createPinia())
 })
 
 describe('cines elegidos', () => {

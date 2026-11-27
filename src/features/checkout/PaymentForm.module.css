@@ -1,0 +1,29 @@
+.payment { display: grid; gap: 18px; }
+.required-note { color: var(--muted); font-size: 13px; }
+.required { color: var(--danger); font-weight: 700; }
+.group { min-width: 0; margin: 0; padding: 18px; border: 1px solid var(--line); border-radius: var(--radius-l); background: var(--glass-strong); }
+.group legend { padding: 0 6px; font: 800 16px var(--font-title); }
+.fields { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.wide { grid-column: 1 / -1; }
+.method { margin-top: 10px; padding: 12px; display: flex; gap: 12px; align-items: flex-start; border: 1px solid var(--line-strong); border-radius: 12px; cursor: pointer; }
+.method.checked { border-color: var(--blue); background: var(--accent-soft); box-shadow: 0 0 0 1px var(--blue); }
+.method input { margin-top: 4px; accent-color: var(--blue); }
+.method span { display: grid; }
+.method small { color: var(--muted); }
+.terms-block { display: grid; gap: 6px; }
+.terms input[aria-invalid='true'] { outline: 2px solid var(--danger); outline-offset: 1px; }
+/* Aspecto de herramienta de desarrollo, para que no se confunda con un método de pago. */
+.test-mode { min-width: 0; margin: 8px 0 0; padding: 14px 16px 16px; border: 2px dashed #8a97ad; border-radius: var(--radius-m); background: repeating-linear-gradient(135deg, #eef1f6 0 10px, #f4f6fa 10px 20px); font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; }
+.test-mode legend { padding: 4px 10px; display: inline-flex; align-items: center; gap: 6px; border-radius: 6px; background: #26324a; color: #ffd866; font-size: 12px; font-weight: 700; }
+.test-help { color: #44516b; font-size: 12px; }
+.outcomes { margin-top: 10px; display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px; }
+.outcome { padding: 10px 12px; display: flex; gap: 10px; align-items: flex-start; border: 1px solid #b8c1d1; border-radius: 8px; background: #fff; cursor: pointer; }
+.outcome.checked { border-color: #26324a; box-shadow: 0 0 0 1px #26324a; }
+.outcome input { margin-top: 3px; accent-color: #26324a; }
+.outcome span { display: grid; gap: 2px; }
+.outcome strong { font-size: 13px; }
+.outcome small { color: #44516b; font-size: 12px; }
+.secure { margin-top: 12px; display: flex; align-items: center; gap: 6px; color: var(--success); font-size: 13px; }
+.terms { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; }
+.terms input { margin-top: 3px; width: 18px; height: 18px; accent-color: var(--blue); }
+@media (max-width: 560px) { .fields { grid-template-columns: minmax(0, 1fr); } }

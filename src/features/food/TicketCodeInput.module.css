@@ -1,0 +1,11 @@
+.input-wrap { position: relative; display: flex; align-items: center; }
+.input-wrap > svg:first-child { position: absolute; left: 14px; color: var(--blue); }
+.input-wrap :global(.input) { padding-left: 42px; padding-right: 44px; font: 700 16px var(--font-title); letter-spacing: .04em; text-transform: uppercase; }
+.spin, .clear { position: absolute; right: 12px; }
+.spin { color: var(--blue); animation: spin 1s linear infinite; }
+.clear { width: 28px; height: 28px; display: grid; place-items: center; border: 0; border-radius: 8px; background: transparent; color: var(--muted); }
+.status { min-height: 22px; margin-top: 6px; display: flex; align-items: center; gap: 6px; font-size: 14px; }
+.ok .status { color: var(--success); }
+.ok :global(.input) { border-color: var(--success); }
+.error .status { color: var(--danger); }
+@keyframes spin { to { transform: rotate(360deg); } }

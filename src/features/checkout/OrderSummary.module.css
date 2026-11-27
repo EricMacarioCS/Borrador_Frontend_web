@@ -1,0 +1,17 @@
+.summary { position: sticky; top: 16px; display: grid; overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-l); background: var(--glass-strong); box-shadow: var(--shadow-card); }
+.head { padding: 18px; display: flex; gap: 14px; background: var(--grad-dark); color: #fff; }
+.poster { width: 72px; flex-shrink: 0; }
+.title { display: block; margin-bottom: 4px; font: 800 18px var(--font-title); }
+.head :global(.badge-rating) { color: #fff; }
+.head p { margin-top: 4px; color: #c9d6ea; font-size: 13px; }
+.body { padding: 18px; display: grid; gap: 12px; }
+.seats { display: flex; justify-content: space-between; gap: 12px; }
+.seats span { color: var(--muted); }
+.seats strong { text-align: right; }
+.lines { display: grid; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+.lines li { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; }
+.lines small { display: block; color: var(--muted); font-size: 12px; }
+.discount { color: var(--success); font-weight: 700; }
+.total { display: flex; justify-content: space-between; padding-top: 12px; border-top: 1px solid var(--line); font: 800 20px var(--font-title); }
+.small { font-size: 13px; }
+.actions { padding: 0 18px 18px; display: grid; gap: 10px; }

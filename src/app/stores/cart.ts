@@ -1,5 +1,4 @@
-import { defineStore } from 'pinia'
-import { computed, ref, watch } from 'vue'
+import { createStore, useStore } from 'zustand'
 import type { ItemSelection, TicketCodeGrant } from '@/domain/models'
 import type { Cents } from '@/shared/lib/money'
 import { session } from '@/shared/lib/storage'
@@ -19,58 +18,88 @@ export interface CartLine extends ItemSelection {
 interface Saved { complexId: string | null; lines: CartLine[]; grant: (Omit<TicketCodeGrant, 'startsAt' | 'endsAt'> & { startsAt: string; endsAt: string }) | null }
 const KEY = 'cp-cart'
 
-export const useCartStore = defineStore('cart', () => {
-  const saved = session.get<Saved>(KEY, { complexId: null, lines: [], grant: null })
-  const complexId = ref<string | null>(saved.complexId)
-  const lines = ref<CartLine[]>(saved.lines)
-  const grant = ref<TicketCodeGrant | null>(saved.grant
-    ? { ...saved.grant, startsAt: new Date(saved.grant.startsAt), endsAt: new Date(saved.grant.endsAt) }
-    : null)
+interface CartData {
+  complexId: string | null
+  lines: CartLine[]
+  grant: TicketCodeGrant | null
+}
 
-  const count = computed(() => lines.value.reduce((sum, line) => sum + line.quantity, 0))
-  const estimateCents = computed(() => lines.value.reduce((sum, line) => sum + line.estimateCents * line.quantity, 0))
-  const needsTicketCode = computed(() => lines.value.some(line => line.requiresTicketCode))
-
-  watch([complexId, lines, grant], () => {
-    session.set(KEY, {
-      complexId: complexId.value,
-      lines: lines.value,
-      grant: grant.value && { ...grant.value, startsAt: grant.value.startsAt.toISOString(), endsAt: grant.value.endsAt.toISOString() }
-    } satisfies Saved)
-  }, { deep: true })
-
+export interface CartState extends CartData {
+  count: number
+  estimateCents: Cents
+  needsTicketCode: boolean
   /** Un carrito pertenece a un solo complejo. Devuelve false si hay que confirmar el cambio. */
-  function canAdd(targetComplexId: string) {
-    return !lines.value.length || complexId.value === targetComplexId
-  }
+  canAdd: (targetComplexId: string) => boolean
+  add: (targetComplexId: string, line: Omit<CartLine, 'key'>) => void
+  setQuantity: (key: string, quantity: number) => void
+  clear: () => void
+  setGrant: (value: TicketCodeGrant | null) => void
+}
 
-  function add(targetComplexId: string, line: Omit<CartLine, 'key'>) {
-    if (complexId.value !== targetComplexId) {
-      lines.value = []
-      grant.value = null
-    }
-    complexId.value = targetComplexId
-    const key = `${line.productId}|${JSON.stringify(line.choices)}`
-    const existing = lines.value.find(item => item.key === key)
-    if (existing) existing.quantity = Math.min(10, existing.quantity + line.quantity)
-    else lines.value.push({ ...line, key })
-  }
-
-  function setQuantity(key: string, quantity: number) {
-    if (quantity <= 0) lines.value = lines.value.filter(line => line.key !== key)
-    else {
-      const line = lines.value.find(item => item.key === key)
-      if (line) line.quantity = Math.min(10, quantity)
-    }
-  }
-
-  function clear() {
-    lines.value = []
-  }
-
-  function setGrant(value: TicketCodeGrant | null) {
-    grant.value = value
-  }
-
-  return { complexId, lines, grant, count, estimateCents, needsTicketCode, canAdd, add, setQuantity, clear, setGrant }
+const totals = (lines: CartLine[]) => ({
+  count: lines.reduce((sum, line) => sum + line.quantity, 0),
+  estimateCents: lines.reduce((sum, line) => sum + line.estimateCents * line.quantity, 0),
+  needsTicketCode: lines.some(line => line.requiresTicketCode)
 })
+
+export function createCartStore() {
+  const saved = session.get<Saved>(KEY, { complexId: null, lines: [], grant: null })
+  const store = createStore<CartState>((set, get) => {
+    /** Cambia los datos, recalcula los totales y guarda en la sesión del navegador. */
+    function update(patch: Partial<CartData>) {
+      const next = { complexId: get().complexId, lines: get().lines, grant: get().grant, ...patch }
+      set({ ...patch, ...totals(next.lines) })
+      session.set(KEY, {
+        complexId: next.complexId,
+        lines: next.lines,
+        grant: next.grant && { ...next.grant, startsAt: next.grant.startsAt.toISOString(), endsAt: next.grant.endsAt.toISOString() }
+      } satisfies Saved)
+    }
+
+    return {
+      complexId: saved.complexId,
+      lines: saved.lines,
+      grant: saved.grant ? { ...saved.grant, startsAt: new Date(saved.grant.startsAt), endsAt: new Date(saved.grant.endsAt) } : null,
+      ...totals(saved.lines),
+
+      canAdd(targetComplexId) {
+        const { lines, complexId } = get()
+        return !lines.length || complexId === targetComplexId
+      },
+      add(targetComplexId, line) {
+        const sameComplex = get().complexId === targetComplexId
+        const lines = sameComplex ? get().lines : []
+        const key = `${line.productId}|${JSON.stringify(line.choices)}`
+        const existing = lines.find(item => item.key === key)
+        update({
+          complexId: targetComplexId,
+          grant: sameComplex ? get().grant : null,
+          lines: existing
+            ? lines.map(item => item.key === key ? { ...item, quantity: Math.min(10, item.quantity + line.quantity) } : item)
+            : [...lines, { ...line, key }]
+        })
+      },
+      setQuantity(key, quantity) {
+        const lines = get().lines
+        update({
+          lines: quantity <= 0
+            ? lines.filter(line => line.key !== key)
+            : lines.map(line => line.key === key ? { ...line, quantity: Math.min(10, quantity) } : line)
+        })
+      },
+      clear() {
+        update({ lines: [] })
+      },
+      setGrant(value) {
+        update({ grant: value })
+      }
+    }
+  })
+  return store
+}
+
+export const cartStore = createCartStore()
+
+export function useCartStore<T>(selector: (state: CartState) => T): T {
+  return useStore(cartStore, selector)
+}

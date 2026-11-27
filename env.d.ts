@@ -13,3 +13,4 @@ interface ImportMeta {
 
 /** Versión de la compilación, inyectada por Vite. */
 declare const __APP_VERSION__: string
+

@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { createPinia, setActivePinia } from 'pinia'
 import type { Product } from '@/domain/models'
-import { useCartStore, type CartLine } from '@/app/stores/cart'
+import { createCartStore, type CartLine, type CartState } from '@/app/stores/cart'
 import { defaultChoices, describe as describeChoices, estimateCents, isComplete, ruleProblem, toSelection } from './selection'
 
 const option = (id: string, extraCents = 0, isDefault = false, available = true) => ({ id, name: id, extraCents, isDefault, available })
@@ -51,20 +50,25 @@ describe('carrito de dulcería', () => {
     productId, quantity: 1, choices: [], name: productId, detail: '', estimateCents: 4500, requiresTicketCode: false
   })
 
+  /** Carrito nuevo; cada lectura toma el estado actual. */
+  function cartStore() {
+    const store = createCartStore()
+    return new Proxy({} as CartState, { get: (_, key) => store.getState()[key as keyof CartState] })
+  }
+
   beforeEach(() => {
     sessionStorage.clear()
-    setActivePinia(createPinia())
   })
 
   it('junta líneas iguales y limita la cantidad', () => {
-    const cart = useCartStore()
+    const cart = cartStore()
     for (let i = 0; i < 12; i++) cart.add('c-1', line('refresco'))
     expect(cart.lines).toHaveLength(1)
     expect(cart.count).toBe(10)
   })
 
   it('pertenece a un solo complejo: cambiarlo vacía el carrito y el folio validado', () => {
-    const cart = useCartStore()
+    const cart = cartStore()
     cart.add('c-1', line('refresco'))
     cart.setGrant({ grant: 'g', ticketCode: 'CIN-AAAA-BBBB-CCCC', complexId: 'c-1', movieTitle: 'X', startsAt: new Date(), endsAt: new Date() })
     expect(cart.canAdd('c-2')).toBe(false)
@@ -74,7 +78,7 @@ describe('carrito de dulcería', () => {
   })
 
   it('la cantidad cero quita la línea', () => {
-    const cart = useCartStore()
+    const cart = cartStore()
     cart.add('c-1', line('agua'))
     cart.setQuantity(cart.lines[0]!.key, 0)
     expect(cart.lines).toEqual([])

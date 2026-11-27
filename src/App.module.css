@@ -1,0 +1,10 @@
+.main { min-height: 60dvh; outline: none; }
+.demo-bar {
+  padding: 6px var(--page-gutter);
+  background: linear-gradient(90deg, #ffc93c, #ffb02e);
+  color: #3a2600;
+  font: 700 12px var(--font-title);
+  text-align: center;
+}
+.page { animation: page-in .25s var(--ease); }
+@keyframes page-in { from { opacity: 0; transform: translateY(8px); } }

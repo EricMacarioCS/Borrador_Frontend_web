@@ -1,0 +1,45 @@
+.complex + .complex { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
+.complex-name { margin-bottom: 4px; color: var(--blue); font: 700 15px var(--font-title); }
+.format { margin-top: 18px; }
+.format-label { color: var(--blue); font: 700 13px var(--font-title); }
+.times { margin-top: 10px; display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 12px; }
+.time {
+  width: 100%;
+  min-height: 78px;
+  padding: 11px 14px 12px;
+  display: grid;
+  align-content: center;
+  gap: 2px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  background: var(--glass-strong);
+  box-shadow: var(--shadow-soft);
+  text-align: left;
+  transition: border-color .25s, box-shadow .25s, transform .25s var(--ease);
+}
+.time strong { font: 800 18px var(--font-title); letter-spacing: -.01em; }
+.time small { color: var(--muted); font-size: 12px; white-space: nowrap; }
+.time.tone-high small { color: var(--warning); font-weight: 700; }
+.time.tone-full small { color: var(--danger); font-weight: 700; }
+.meter { height: 4px; margin-top: 6px; overflow: hidden; border-radius: var(--radius-pill); background: rgba(23, 78, 166, .1); }
+.meter span { display: block; min-width: 6px; height: 100%; border-radius: inherit; background: var(--tone); }
+.time:hover:not(:disabled) { border-color: rgba(56, 189, 248, .75); box-shadow: 0 0 0 3px rgba(56, 189, 248, .16), 0 12px 26px -12px rgba(56, 189, 248, .7); transform: translateY(-2px); }
+.time:focus-visible { border-radius: var(--radius-m); }
+.time.active { background: var(--grad-blue); border-color: transparent; color: #fff; box-shadow: 0 0 0 2px var(--accent), 0 0 22px rgba(56, 189, 248, .45); }
+.time.active small { color: #d6ebff; }
+.time.active .meter { background: rgba(255, 255, 255, .22); }
+.time:disabled { opacity: .55; box-shadow: none; }
+.time.tone-closed .meter span { min-width: 0; }
+/* En celular caben dos horarios por renglón; el texto de disponibilidad puede ocupar dos líneas. */
+@media (max-width: 560px) {
+  .times { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+  .time { height: 100%; padding: 10px; }
+  .time small { white-space: normal; line-height: 1.3; }
+}
+.legend { margin-top: 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; color: var(--muted); font-size: 13px; }
+.legend i { display: inline-flex; align-items: center; gap: 6px; font-style: normal; }
+.legend i::before { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--tone); box-shadow: 0 0 8px var(--tone); }
+.tone-low { --tone: var(--occ-low); }
+.tone-medium { --tone: var(--occ-medium); }
+.tone-high { --tone: var(--occ-high); }
+.tone-full { --tone: var(--occ-full); }

@@ -1,0 +1,23 @@
+.banner { height: 120px; margin: -20px -20px 16px; display: grid; place-items: center; background: radial-gradient(70% 90% at 30% 20%, rgba(255, 201, 60, .45), transparent 60%), linear-gradient(140deg, #a98ce8, #5a3fc0); color: #fff; font: 800 28px var(--font-title); }
+.description { color: var(--muted); margin-bottom: 8px; }
+.rule { margin: 18px 0 0; padding: 0; border: 0; }
+.rule legend { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; font: 800 16px var(--font-title); }
+.rule legend small { color: var(--muted); font: 600 12px var(--font-body); }
+.hint { margin-top: 4px; color: var(--muted); font-size: 13px; }
+.options { margin-top: 10px; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.option { min-height: 48px; padding: 10px 12px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--line-strong); border-radius: 12px; background: #fff; cursor: pointer; transition: border-color .2s, box-shadow .2s, background .2s; }
+.option:hover:not(.off) { border-color: var(--accent); }
+.option.checked { border-color: var(--blue); background: var(--accent-soft); box-shadow: 0 0 0 1px var(--blue); }
+.option.off { border-color: #d5dae3; border-style: dashed; background: #e9ecf1; color: #727d90; box-shadow: none; cursor: not-allowed; }
+.option.off input { cursor: not-allowed; filter: grayscale(1); opacity: .55; }
+.option.off small { color: #727d90; }
+.limit { margin-top: 8px; color: var(--blue); font-size: 13px; font-weight: 600; }
+.limit:empty { display: none; }
+.option input { accent-color: var(--blue); width: 18px; height: 18px; }
+.option span { flex: 1; font-weight: 600; }
+.option small { color: var(--muted); font-size: 12px; }
+.footer { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; }
+.same { flex-basis: 100%; color: var(--muted); font-size: 13px; line-height: 1.4; }
+.quantity { display: grid; justify-items: start; gap: 6px; }
+.quantity > span { color: #485a78; font: 700 12px var(--font-title); }
+@media (max-width: 440px) { .add { width: 100%; } }

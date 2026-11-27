@@ -1,0 +1,19 @@
+.ticket { position: relative; display: flex; gap: 24px; padding: 22px; border: 1px solid var(--line); border-radius: var(--radius-l); background: #fff; box-shadow: var(--shadow-card); }
+.ticket::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 6px; border-radius: var(--radius-l) 0 0 var(--radius-l); background: var(--grad-action); }
+.qr { width: 170px; flex-shrink: 0; display: grid; gap: 6px; justify-items: center; text-align: center; }
+.qr small { color: var(--muted); font-size: 12px; }
+.detail { min-width: 0; display: grid; gap: 4px; align-content: start; }
+.detail h2 { margin: 4px 0; font: 800 22px var(--font-title); }
+.detail p { color: var(--muted); font-size: 14px; }
+.seats strong { color: var(--ink); }
+.items { margin-top: 8px; font-size: 14px; }
+.items ul { margin-top: 4px; padding-left: 18px; color: var(--muted); }
+.total { margin-top: 6px; }
+.total strong { color: var(--ink); }
+.code { margin-top: 6px; font-size: 15px !important; }
+.code strong { color: var(--blue); font: 800 18px var(--font-title); letter-spacing: .04em; overflow-wrap: anywhere; }
+.small { font-size: 13px; }
+@media (max-width: 560px) {
+  .ticket { flex-direction: column; align-items: center; text-align: center; }
+  .items ul { padding-left: 0; list-style: none; }
+}

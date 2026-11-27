@@ -1,0 +1,10 @@
+.narrow { max-width: 860px; display: grid; gap: 20px; }
+.status { padding: 22px; display: flex; gap: 16px; align-items: flex-start; border-radius: var(--radius-l); background: var(--accent-soft); color: #204a89; }
+.status h1 { font: 800 clamp(22px, 3vw, 30px) var(--font-title); }
+.status.confirmed { background: var(--success-soft); color: var(--success); }
+.status.payment-failed, .status.refund-pending, .status.refunded, .status.cancelled { background: var(--warning-soft); color: var(--warning); }
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.danger { color: var(--danger); }
+.small { font-size: 13px; }

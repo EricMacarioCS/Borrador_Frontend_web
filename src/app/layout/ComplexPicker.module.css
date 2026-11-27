@@ -1,0 +1,29 @@
+.search-area { position: sticky; top: -20px; z-index: 1; margin: -20px -20px 16px; padding: 16px 20px 12px; display: grid; gap: 10px; background: var(--surface); border-bottom: 1px solid var(--line); }
+.search { display: flex; align-items: center; gap: 10px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: var(--radius-m); background: linear-gradient(180deg, #fff, #f5f9ff); }
+.search:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(56, 189, 248, .25); }
+.search svg { color: var(--blue); flex: none; }
+.search input { flex: 1; min-width: 0; min-height: 48px; border: 0; background: transparent; font-size: 16px; }
+.search input:focus { outline: none; }
+.search input::-webkit-search-cancel-button { display: none; }
+.clear { width: 30px; height: 30px; display: grid; place-items: center; border: 0; border-radius: 8px; background: var(--surface-soft); color: var(--muted); }
+.help { color: var(--muted); font-size: 14px; }
+.empty { padding: 12px 0; }
+.city { margin: 0 0 16px; padding: 0; border: 0; }
+.city legend { width: 100%; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; color: var(--blue); font: 700 13px var(--font-title); text-transform: uppercase; letter-spacing: .08em; }
+.all { margin-left: auto; padding: 4px 8px; border: 0; border-radius: 8px; background: transparent; color: var(--blue); font: 700 12px var(--font-title); letter-spacing: 0; text-transform: none; }
+.all:hover { background: var(--accent-soft); }
+.option { display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: 12px; cursor: pointer; transition: background .2s; }
+.option + .option { margin-top: 2px; }
+.option:hover { background: var(--surface-soft); }
+.option.checked { background: var(--accent-soft); }
+.option input { flex: none; width: 18px; height: 18px; accent-color: var(--blue); }
+.copy { flex: 1; min-width: 0; display: grid; gap: 4px; }
+.formats { display: flex; flex-wrap: wrap; gap: 4px; }
+.format { padding: 1px 6px; border: 1px solid var(--line-strong); border-radius: 5px; color: var(--muted); font: 700 10px var(--font-title); letter-spacing: .03em; }
+.switch { flex: none; color: var(--muted); font-size: 12px; }
+.footer { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.status { margin-right: auto; display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 14px; }
+@media (max-width: 520px) {
+  .switch { display: none; }
+  .footer :global(.btn-primary) { flex: 1 0 100%; }
+}

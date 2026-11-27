@@ -17,7 +17,7 @@ Remake académico de Cinépolis, sin relación comercial con la empresa. Son **d
 
 | Capa | Tecnología |
 | --- | --- |
-| Frontend | Vue 3 + TypeScript + Vite |
+| Frontend | React 19 + TypeScript + Vite (la web; la gestión sigue en Vue) |
 | API Gateway | Kong Gateway |
 | Backend | C# ASP.NET Core Web API + SignalR (mapa de asientos) + Dapper |
 | Base de datos | PostgreSQL |
@@ -207,13 +207,13 @@ Propuestas mías aceptadas sin objeción:
 
 **Repositorio:** `Borrador_Frontend_web`. El usuario subió el borrador a `main` (commit `9c9e4`); `feature/borrador-web` apunta al mismo commit. La fase 9 vive en la rama `Actualización_diseño`, **sin commit**, junto con la corrección de `docs/mapeo-bd.md` y `docs/contexto-proyecto.md` (también sin commit).
 
-**Versiones (fijadas exactas en `package.json`):** Vue 3.5.46, vue-router 5.5.1, Pinia 4.1.0, @tanstack/vue-query 5.108.3, zod 4.6.7, @microsoft/signalr 10.0.11, @lucide/vue 1.78.0, fuentes @fontsource-variable (Inter y Montserrat) 5.3.0, Vite 8.3.8, TypeScript 5.9.3, vue-tsc 3.3.14, Vitest 5.1.1 con happy-dom, ESLint 10. Node 24 (`.nvmrc`); la máquina tiene 24.14 y npm avisa que dos dependencias piden 24.15 o más (sin efecto práctico).
+**Versiones (fijadas exactas en `package.json`, rama `migracion-react`):** React 19.3.1, react-router 8.5.3, Zustand 5.1.0, @tanstack/react-query 5.108.4, zod 4.6.7, @microsoft/signalr 10.0.11, lucide-react 1.81.0, fuentes @fontsource-variable (Inter y Montserrat) 5.3.0, Vite 8.3.8 con @vitejs/plugin-react 6.3.0, TypeScript 5.9.3, Vitest 5.1.1 con happy-dom y Testing Library, ESLint 10 con eslint-plugin-react-hooks. Node 24 (`.nvmrc`); la máquina tiene 24.14 y npm avisa que dos dependencias piden 24.15 o más (sin efecto práctico).
 
 **Estructura**
 
 ```
 src/
-  app/        arranque (main.ts), config.ts, services.ts, router.ts, queries.ts, stores/, layout/
+  app/        arranque (main.tsx), App.tsx, config.ts, services.ts, router.tsx, navigation.ts, queries.ts, stores/, layout/
   domain/     models.ts y ports.ts: lo único que conocen las vistas
   adapters/   http/ (schemas zod, mappers, adapters) y realtime/signalr.ts
   mocks/      backend simulado (fixtures, schedule, store, server, index)
@@ -251,6 +251,22 @@ deploy/       nginx y script de configuración del contenedor
 **Datos del simulador:** 8 complejos (Xalapa Centro, Xalapa Centro VIP, Xalapa Ánimas, Veracruz Boulevard, Veracruz Puerto, Boca del Río Costa, Coatzacoalcos Malecón, Córdoba Parque), formatos derivados de sus salas, popularidad base por película más los boletos confirmados, 10 películas ficticias, horarios deterministas a 14 días, tipos de boleto General/Niño/Adulto mayor, promociones (2×1 martes en salas tradicionales 2D, Jueves IMAX 20 %, Matiné de fin de semana antes de las 15:00, Meses sin intereses informativa), productos con existencias limitadas.
 
 **Claves del navegador:** `cp-mock-state-v1` y `cp-mock-session` (solo simulador), `cp-selected-complexes` (local); `cp-cart`, `cp-checkout-<funcion>`, `cp-pending-ticket-code`, `cp-reloaded` (sesión).
+
+**Migración a React (26 de noviembre de 2026, rama `migracion-react`, sin commit)**
+
+El encargado del proyecto pidió que la web use React. Se migró desde el commit `ac8e5` (`Actualización_diseño` con `feature/revision-mejoras`). `domain/`, `adapters/`, `mocks/` y `shared/lib/` no cambiaron: el contrato, los esquemas y el simulador son los mismos. Equivalencias:
+
+| Vue | React |
+| --- | --- |
+| Componentes `.vue` con estilos `scoped` | Componentes `.tsx` con CSS Modules (`*.module.css`, nombres en camelCase). Las clases globales de `base.css` (`btn`, `card`, `notice`…) siguen siendo texto. |
+| Pinia (`app`, `cart`) | Zustand: almacenes `appStore` y `cartStore` con `useAppStore(selector)` y `useCartStore(selector)`. |
+| `useCheckout` reactivo | Un almacén Zustand por pantalla de compra: las operaciones asíncronas leen el estado actual. |
+| vue-router y `onBeforeRouteLeave` | React Router 8 con rutas diferidas. Un solo `useBlocker` en `App.tsx`; las reglas viven en `app/navigation.ts` (salir de la compra con asientos y película sin cine). |
+| `provide/inject` de servicios | `ServicesContext` y `ConfigContext`. |
+| `defineExpose` del formulario de pago | `ref` con `useImperativeHandle` (`PaymentFormHandle`). |
+| `@vue/test-utils` | `@testing-library/react`. |
+
+`StrictMode` está activo, así que los efectos (SignalR, sondeos, apartados) deben poder montarse dos veces sin efectos dobles.
 
 **Despliegue**
 - `Dockerfile`: compila con Node 24 y sirve con `nginxinc/nginx-unprivileged` en el puerto 8080.
@@ -334,7 +350,7 @@ No verificado:
 1. **Residuos de la simulación detectados, sin corregir:**
    - `'tt-general'` escrito en `src/features/checkout/useCheckout.ts` (3 lugares) como tipo de boleto por defecto. Con el backend real ese ID no existirá. Tomar el tipo por defecto de `/screenings/{id}/ticket-prices`.
    - `src/app/config.ts` cae en modo `mock` si `config.json` no carga o es inválido. En producción mostraría datos falsos. Hacer que la compilación de producción use `http` por defecto y muestre error ante configuración inválida.
-   - Niveles del Club escritos en `src/features/content/ClubView.vue`. Deberían venir del API (tabla `nivel_club`).
+   - Niveles del Club escritos en `src/features/content/ClubView.tsx`. Deberían venir del API (tabla `nivel_club`).
    - El archivo del simulador queda dentro de `dist/` y de la imagen aunque no se descargue. Excluirlo de la compilación de producción y borrar las claves `cp-mock-*` en modo API.
 2. ~~Inconsistencia en `docs/mapeo-bd.md`~~ **Corregida el 23 de noviembre de 2026.** El documento mapeaba el folio de boletos a la tabla `folio`, que en realidad guarda vales de beneficio externo. Se reescribió con las descripciones del `.pgerd`: conversiones (pesos en `numeric` a centavos, horas sin zona, funciones que cruzan la medianoche), tabla por dato, 18 faltantes (folio de boletos y token del QR como columnas nuevas de `venta`, el `UNIQUE asiento_id` que impide revender butacas canceladas, inventario, pago, etc.), riesgos de diseño, riesgo legal y preguntas para BD. `docs/contrato-api.md` se alineó (duración del apartado, folio y reventa).
 3. Hacer commit de la fase 9 en `Actualización_diseño` cuando el usuario lo pida.

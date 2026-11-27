@@ -1,0 +1,8 @@
+.narrow { max-width: 860px; }
+.list { margin-top: 22px; display: grid; gap: 10px; }
+.item { border: 1px solid var(--line); border-radius: var(--radius-m); background: #fff; }
+.item summary { padding: 16px 18px; font: 700 16px var(--font-title); cursor: pointer; }
+.item summary:hover { color: var(--blue); }
+.item[open] { box-shadow: 0 0 0 1px var(--accent); }
+.item p { padding: 0 18px 16px; color: var(--muted); }
+.more { margin-top: 20px; }

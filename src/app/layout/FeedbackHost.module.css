@@ -1,0 +1,22 @@
+.toasts { position: fixed; right: 20px; bottom: 20px; z-index: 3000; display: grid; gap: 10px; width: min(420px, calc(100vw - 40px)); }
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 12px 12px 14px;
+  border: 1px solid rgba(56, 189, 248, .35);
+  border-radius: 14px;
+  background: var(--grad-menu);
+  color: #fff;
+  box-shadow: var(--shadow-float);
+}
+.icon { width: 28px; height: 28px; flex-shrink: 0; display: grid; place-items: center; border-radius: 50%; background: var(--grad-action); color: #06142f; }
+.error .icon { background: #ef4444; color: #fff; }
+.text { flex: 1; font-size: 14px; }
+.toast button { width: 32px; height: 32px; display: grid; place-items: center; border: 0; border-radius: 8px; background: transparent; color: #b8c7dd; }
+.toast button:hover { background: rgba(255, 255, 255, .1); color: #fff; }
+.toast { animation: toast-in .3s var(--ease); }
+@keyframes toast-in { from { opacity: 0; transform: translateY(14px); } }
+.confirm-text { color: var(--muted); }
+.confirm-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; }
+.confirm-actions .danger { color: var(--danger); border-color: #f1b4ae; }

@@ -25,8 +25,8 @@ npm run check      # lint + tipos + pruebas + compilación (lo mismo que corre C
 | `npm run build` | Revisa tipos y compila a `dist/`. |
 | `npm run preview` | Sirve `dist/` para revisar la compilación. |
 | `npm test` / `npm run test:watch` | Pruebas con Vitest. |
-| `npm run lint` / `npm run lint:fix` | ESLint (Vue + TypeScript con reglas de tipos). |
-| `npm run typecheck` | `vue-tsc` sobre la app, las pruebas y la configuración. |
+| `npm run lint` / `npm run lint:fix` | ESLint (TypeScript con reglas de tipos y reglas de hooks de React). |
+| `npm run typecheck` | `tsc --build` sobre la app, las pruebas y la configuración. |
 
 En modo simulado aparece una franja amarilla: los cobros son ficticios. El método de pago permite **aprobar** o **rechazar** el pago para probar ambos caminos, y el código de acceso a "Mi cuenta" se muestra en pantalla.
 
@@ -34,7 +34,7 @@ En modo simulado aparece una franja amarilla: los cobros son ficticios. El méto
 
 ```
 src/
-  app/          Arranque, rutas, consultas (TanStack Query), stores (Pinia), layout
+  app/          Arranque, rutas, consultas (TanStack Query), stores (Zustand), layout
   domain/       Modelos y puertos: lo único que conocen las vistas
   adapters/
     http/       Cliente REST: esquemas zod del contrato, conversores y adaptadores

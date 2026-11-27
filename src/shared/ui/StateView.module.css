@@ -1,0 +1,19 @@
+.message {
+  padding: 48px 20px;
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  text-align: center;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-l);
+  background: rgba(255, 255, 255, .7);
+}
+.message svg { color: var(--blue); }
+.message h2 { font: 800 20px var(--font-title); }
+.message p { color: var(--muted); max-width: 52ch; }
+.message small { color: var(--muted); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 18px; }
+.card { aspect-ratio: 2 / 3.4; }
+.rows { display: grid; gap: 12px; }
+.row { height: 96px; }
+.block { height: 320px; }

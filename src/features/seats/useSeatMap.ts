@@ -3,66 +3,74 @@
  * suscribirse, pedir la foto, aplicar eventos; al reconectar, volver a pedir la foto.
  * Además consulta cada 30 s y al volver a la pestaña, por si se perdió el último evento.
  */
-import { computed, onBeforeUnmount, ref, shallowRef, watch, type Ref } from 'vue'
-import { useQuery } from '@tanstack/vue-query'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import type { ChannelStatus } from '@/domain/ports'
 import type { SeatSnapshot } from '@/domain/models'
 import { useConfig, useServices } from '@/app/services'
 import { createSeatSync } from './seatSync'
 
-export function useSeatMap(screeningId: Ref<string>, layoutRef: Ref<{ id: string; version: number } | null>) {
+export function useSeatMap(screeningId: string, layoutRef: { id: string; version: number } | null) {
   const { seats, seatChannel } = useServices()
   const config = useConfig()
-  const snapshot = shallowRef<SeatSnapshot | null>(null)
-  const channel = ref<ChannelStatus>('connecting')
-  const stale = ref(false)
+  const realtime = config.features.realtimeSeats
+  const [snapshot, setSnapshot] = useState<SeatSnapshot | null>(null)
+  const [channel, setChannel] = useState<ChannelStatus>('connecting')
+  const [stale, setStale] = useState(false)
+  const current = useRef<{ sync: () => Promise<void> } | null>(null)
 
   // El plano no cambia durante la venta: se guarda en caché por versión.
+  const layoutId = layoutRef?.id
+  const layoutVersion = layoutRef?.version
   const layout = useQuery({
-    queryKey: computed(() => ['seat-layout', layoutRef.value?.id, layoutRef.value?.version]),
-    queryFn: ({ signal }) => seats.getLayout(layoutRef.value!.id, layoutRef.value!.version, signal),
-    enabled: computed(() => layoutRef.value !== null),
+    queryKey: ['seat-layout', layoutId, layoutVersion],
+    queryFn: ({ signal }) => seats.getLayout(layoutId!, layoutVersion!, signal),
+    enabled: layoutId !== undefined,
     staleTime: Infinity
   })
 
-  let cleanup: (() => void) | null = null
-  let current: { sync: () => Promise<void> } | null = null
+  // Cambiar de función reinicia la foto. Se ajusta durante el render para no pintar la foto anterior.
+  const [shownId, setShownId] = useState(screeningId)
+  if (shownId !== screeningId) {
+    setShownId(screeningId)
+    setSnapshot(null)
+  }
 
-  function start(id: string) {
+  useEffect(() => {
     let disposed = false
     let retry = 0
     const sync = createSeatSync(
-      () => seats.getSeatState(id),
+      () => seats.getSeatState(screeningId),
       state => {
         if (disposed) return
-        snapshot.value = state
-        stale.value = false
+        setSnapshot(state)
+        setStale(false)
       },
       () => {
         if (disposed) return
-        stale.value = true
+        setStale(true)
         retry = window.setTimeout(() => void sync.sync(), 3000)
       }
     )
 
-    current = sync
+    current.current = sync
     let unsubscribe: (() => Promise<void>) | null = null
-    const subscription = config.features.realtimeSeats
-      ? seatChannel.subscribe(id, {
+    const subscription = realtime
+      ? seatChannel.subscribe(screeningId, {
         onEvent: event => { if (!disposed) sync.receive(event) },
-        onStatus: status => { if (!disposed) channel.value = status },
+        onStatus: status => { if (!disposed) setChannel(status) },
         onReconnected: () => { if (!disposed) void sync.sync() }
       }).then(stop => {
         if (disposed) void stop()
         else unsubscribe = stop
-      }).catch(() => { channel.value = 'disconnected' })
-      : Promise.resolve().then(() => { channel.value = 'disconnected' })
+      }).catch(() => { if (!disposed) setChannel('disconnected') })
+      : Promise.resolve().then(() => { if (!disposed) setChannel('disconnected') })
 
     void subscription.finally(() => { if (!disposed) void sync.sync() })
 
     const poll = window.setInterval(() => {
       if (document.visibilityState === 'visible') void sync.sync()
-    }, config.features.realtimeSeats ? 30000 : 10000)
+    }, realtime ? 30000 : 10000)
     const onVisible = () => { if (document.visibilityState === 'visible') void sync.sync() }
     const onShow = (event: PageTransitionEvent) => { if (event.persisted) void sync.sync() }
     document.addEventListener('visibilitychange', onVisible)
@@ -76,21 +84,12 @@ export function useSeatMap(screeningId: Ref<string>, layoutRef: Ref<{ id: string
       window.removeEventListener('pageshow', onShow)
       void unsubscribe?.()
     }
-  }
-
-  watch(screeningId, id => {
-    cleanup?.()
-    snapshot.value = null
-    cleanup = start(id)
-  }, { immediate: true })
-
-  onBeforeUnmount(() => cleanup?.())
+  }, [screeningId, realtime, seats, seatChannel])
 
   /** Fuerza una foto nueva, por ejemplo después de un conflicto de asientos. */
-  async function refresh() {
-    await current?.sync()
-  }
+  const refresh = useCallback(async () => {
+    await current.current?.sync()
+  }, [])
 
   return { layout, snapshot, channel, stale, refresh }
 }
-

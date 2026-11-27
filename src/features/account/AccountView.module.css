@@ -1,0 +1,13 @@
+.grid { display: grid; grid-template-columns: 380px 1fr; gap: 28px; align-items: start; }
+.access { padding: 24px; display: grid; gap: 12px; justify-items: start; }
+.access h1 { font: 800 28px var(--font-title); }
+.form { width: 100%; display: grid; gap: 14px; }
+.code { font: 800 24px var(--font-title); letter-spacing: .3em; text-align: center; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; }
+.purchases h2 { margin-bottom: 8px; font: 800 24px var(--font-title); }
+.list { margin-top: 12px; display: grid; gap: 12px; }
+.item { padding: 16px 18px; display: grid; gap: 4px; text-decoration: none; transition: box-shadow .3s, transform .3s var(--ease); }
+.item:hover { transform: translateY(-2px); box-shadow: 0 0 0 1px var(--accent), 0 14px 30px rgba(11, 21, 48, .12); }
+.title { font: 800 18px var(--font-title); }
+.meta { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+@media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
